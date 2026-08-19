@@ -167,9 +167,19 @@
     .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
     .place-search-wrap{padding:12px;border:1px dashed var(--line);border-radius:12px;background:var(--panel-2)}
     .place-search-wrap small{display:block;color:var(--muted);line-height:1.5;margin-bottom:8px}
-    #placeAutocompleteHost{width:100%;max-width:100%;min-width:0;min-height:44px;overflow:visible;position:relative;z-index:20}
+    #placeAutocompleteHost{width:100%;max-width:100%;min-width:0;position:relative;z-index:20}
     .place-search-wrap{min-width:0;max-width:100%;overflow:visible;position:relative;z-index:20}
-    gmp-place-autocomplete{display:block;width:100%!important;max-width:100%!important;min-width:0!important;position:relative;z-index:21;--gmp-mat-color-surface:#fff}
+    .place-text-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}
+    .place-text-search input{width:100%;min-width:0;border:1px solid var(--line);background:#fff;padding:11px 12px;border-radius:11px;outline:none;color:var(--ink);font-size:14px}
+    .place-text-search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(182,91,66,.12)}
+    .place-search-results{margin-top:8px;max-height:320px;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 12px 28px rgba(35,31,24,.10)}
+    .place-result{display:block;width:100%;border:0;border-bottom:1px solid #eee8df;background:#fff;text-align:left;padding:11px 12px;cursor:pointer;color:var(--ink)}
+    .place-result:last-child{border-bottom:0}
+    .place-result:hover,.place-result:focus{background:#f4f2e9;outline:none}
+    .place-result strong{display:block;font-size:13px;line-height:1.35}
+    .place-result span{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.45}
+    .place-result-state{padding:13px 12px;color:var(--muted);font-size:12px;text-align:center}
+    .time-24{font-variant-numeric:tabular-nums}
     .notice{padding:10px 12px;border-radius:11px;background:#fff8e7;border:1px solid #ead8aa;color:#705f37;font-size:12px;line-height:1.5}
     .toast{position:fixed;z-index:200;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1f221f;color:#fff;padding:11px 14px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 12px 30px rgba(0,0,0,.22);font-size:13px}
     .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -207,7 +217,7 @@
       .trip-hero{padding:18px;border-radius:20px}.trip-title-row{display:block}.trip-select{margin:8px 0 0;width:100%;max-width:none}.trip-title{font-size:30px}.summary-row{grid-template-columns:1fr 1fr}.summary-row .summary:last-child{grid-column:1/-1}
       .section-toolbar{flex-wrap:wrap;gap:8px}.section-toolbar .spacer{display:none}.section-toolbar h2{flex:1 0 100%}.section-toolbar .btn{margin-left:0}.item-card{grid-template-columns:38px minmax(0,1fr)}.item-actions{grid-column:2;justify-self:end;justify-items:end;max-width:none;width:auto}.item-action-row{justify-content:flex-end}.item-photo-thumb{width:112px}
       .photo-grid{grid-template-columns:repeat(2,1fr)}.tool-grid{grid-template-columns:1fr}.auth-card{padding:22px}.expense-row{grid-template-columns:78px minmax(0,1fr) auto}.expense-row .btn{grid-column:2/-1;justify-self:start}.expense-amount{font-size:13px}.totals{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
-      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px;overflow:visible}#placeAutocompleteHost,gmp-place-autocomplete{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible}.quick-add-bar{width:calc(100vw - 24px);max-width:420px;bottom:calc(10px + env(safe-area-inset-bottom));padding:7px}.quick-add-bar .btn{flex:1;min-width:0}
+      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px;overflow:visible}#placeAutocompleteHost{width:100%!important;max-width:100%!important;min-width:0!important}.place-text-search{grid-template-columns:minmax(0,1fr) auto}.place-text-search input{font-size:16px}.place-search-results{max-height:280px}.quick-add-bar{width:calc(100vw - 24px);max-width:420px;bottom:calc(10px + env(safe-area-inset-bottom));padding:7px}.quick-add-bar .btn{flex:1;min-width:0}
     }
   </style>
 </head>
@@ -354,11 +364,17 @@
       <input type="hidden" id="itemId" />
       <div class="form-grid">
         <div class="field"><label>날짜</label><input id="itemDate" type="date" required /></div>
-        <div class="field"><label>시간</label><input id="itemTime" type="time" /></div>
+        <div class="field"><label>시간 (24시간제)</label><input id="itemTime" class="time-24" type="text" maxlength="5" autocomplete="off" placeholder="예: 15:00" /></div>
         <div class="field full place-search-wrap">
           <label>Google 장소 검색</label>
           <small id="placeSearchHelp">Google Maps 키를 연결하면 여기에서 실제 장소를 검색해 선택할 수 있습니다.</small>
-          <div id="placeAutocompleteHost"></div>
+          <div id="placeAutocompleteHost">
+            <div class="place-text-search">
+              <input id="placeSearchInput" type="search" autocomplete="off" placeholder="장소명 검색" aria-label="Google 장소 검색" />
+              <button class="btn" id="placeSearchBtn" type="button">검색</button>
+            </div>
+            <div class="place-search-results hidden" id="placeSearchResults" role="listbox" aria-label="Google 장소 검색 결과"></div>
+          </div>
         </div>
         <div class="field full"><label>내가 표시할 장소명 *</label><input id="itemCustomName" required placeholder="예: 버밍엄 성" /></div>
         <div class="field"><label>Google 장소명</label><input id="itemGoogleName" placeholder="예: Birmingham Castle" /></div>
@@ -380,7 +396,7 @@
       <input type="hidden" id="memoId" />
       <div class="form-grid">
         <div class="field"><label>날짜</label><input id="memoDate" type="date" required /></div>
-        <div class="field"><label>시간</label><input id="memoTime" type="time" /></div>
+        <div class="field"><label>시간 (24시간제)</label><input id="memoTime" class="time-24" type="text" maxlength="5" autocomplete="off" placeholder="예: 15:00" /></div>
         <div class="field full"><label>제목 *</label><input id="memoTitle" required placeholder="예: 여권과 입장권 챙기기" /></div>
         <div class="field full"><label>메모</label><textarea id="memoBody" placeholder="일정 사이에 기억해둘 준비물, 약속, 주의사항 등을 적어두세요."></textarea></div>
       </div>
@@ -519,7 +535,8 @@
   let map = null;
   let markers = [];
   let routeLine = null;
-  let placeAutocomplete = null;
+  let PlaceSearchClass = null;
+  let placeSearchSeq = 0;
   let selectedPlaceId = '';
   let selectedItemId = '';
   let galleryPhotos = [];
@@ -581,6 +598,28 @@
   }
   function dayNo(date){ const ds=tripDates(); const idx=ds.indexOf(date); return idx>=0 ? idx+1 : '?'; }
   function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),1800); }
+
+  function normalizeTime24(value){
+    const raw=String(value??'').trim().replace(/\s+/g,'');
+    if(!raw)return '';
+    let h,m;
+    if(/^\d{1,2}$/.test(raw)){h=Number(raw);m=0;}
+    else if(/^\d{3,4}$/.test(raw)){
+      const s=raw.padStart(4,'0');h=Number(s.slice(0,2));m=Number(s.slice(2));
+    }else{
+      const match=raw.match(/^(\d{1,2}):(\d{1,2})$/);
+      if(!match)return null;
+      h=Number(match[1]);m=Number(match[2]);
+    }
+    if(!Number.isInteger(h)||!Number.isInteger(m)||h<0||h>23||m<0||m>59)return null;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+  function readTime24(selector){
+    const el=$(selector); const normalized=normalizeTime24(el.value);
+    if(normalized===null){toast('시간은 24시간제로 입력해주세요. 예: 15:00');el.focus();return null;}
+    el.value=normalized; return normalized;
+  }
+
   function openModal(id){ $('#'+id).classList.add('open'); }
   function closeModal(id){ $('#'+id).classList.remove('open'); }
   function hasValidCoords(item){
@@ -588,6 +627,74 @@
     const lat=Number(item.lat), lng=Number(item.lng);
     return Number.isFinite(lat) && Number.isFinite(lng) && lat>=-90 && lat<=90 && lng>=-180 && lng<=180;
   }
+
+  function resetPlaceSearchUI(){
+    const input=$('#placeSearchInput'), box=$('#placeSearchResults');
+    if(input)input.value='';
+    if(box){box.innerHTML='';box.classList.add('hidden');}
+  }
+  function chooseSearchedPlace(place){
+    selectedPlaceId=place.id||'';
+    $('#itemGoogleName').value=place.displayName||'';
+    if(!$('#itemCustomName').value)$('#itemCustomName').value=place.displayName||'';
+    $('#itemAddress').value=place.formattedAddress||'';
+    if(place.location){
+      $('#itemLat').value=place.location.lat();
+      $('#itemLng').value=place.location.lng();
+      map?.panTo(place.location);
+      map?.setZoom(13);
+    }
+    const box=$('#placeSearchResults');
+    if(box){box.innerHTML='';box.classList.add('hidden');}
+    const input=$('#placeSearchInput');
+    if(input)input.value=place.displayName||'';
+  }
+  function renderPlaceSearchResults(places){
+    const box=$('#placeSearchResults'); if(!box)return;
+    box.innerHTML='';
+    if(!places.length){
+      box.innerHTML='<div class="place-result-state">검색 결과가 없습니다.</div>';
+      box.classList.remove('hidden'); return;
+    }
+    places.forEach((place,index)=>{
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='place-result';btn.setAttribute('role','option');
+      btn.innerHTML=`<strong>${escapeHtml(place.displayName||'이름 없는 장소')}</strong>${place.formattedAddress?`<span>${escapeHtml(place.formattedAddress)}</span>`:''}`;
+      btn.onclick=()=>chooseSearchedPlace(place);
+      box.appendChild(btn);
+    });
+    box.classList.remove('hidden');
+  }
+  async function searchGooglePlaces(){
+    const input=$('#placeSearchInput'), box=$('#placeSearchResults'), btn=$('#placeSearchBtn');
+    const query=input?.value.trim()||'';
+    if(query.length<2)return toast('장소명을 2글자 이상 입력해주세요.');
+    if(!PlaceSearchClass)return toast('Google 장소 검색을 아직 불러오는 중입니다.');
+    const seq=++placeSearchSeq;
+    btn.disabled=true;btn.textContent='검색 중';
+    box.innerHTML='<div class="place-result-state">검색 중…</div>';box.classList.remove('hidden');
+    try{
+      const request={
+        textQuery:query,
+        fields:['displayName','formattedAddress','location','id'],
+        language:'ko-KR',
+        maxResultCount:20
+      };
+      const {places}=await PlaceSearchClass.searchByText(request);
+      if(seq!==placeSearchSeq)return;
+      renderPlaceSearchResults(places||[]);
+    }catch(err){
+      console.error('Google place text search failed',err);
+      if(seq===placeSearchSeq){
+        box.innerHTML='<div class="place-result-state">검색 중 오류가 발생했습니다.</div>';
+        box.classList.remove('hidden');
+        toast('Google 장소 검색에 실패했습니다.');
+      }
+    }finally{
+      if(seq===placeSearchSeq){btn.disabled=false;btn.textContent='검색';}
+    }
+  }
+
   function googleMapsUrl(item){
     const query=(item.googleName||item.customName||item.address||'').trim();
     if(item.placeId) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}&query_place_id=${encodeURIComponent(item.placeId)}`;
@@ -936,14 +1043,14 @@
   }
   function openItemEdit(id=null){
     const i=id?state.items.find(x=>x.id===id):null; const t=trip(); if(!t)return toast('여행을 먼저 만들어주세요.');
-    $('#itemModalTitle').textContent=i?'일정 수정':'일정 추가'; $('#itemId').value=i?.id||''; $('#itemDate').min=t.startDate;$('#itemDate').max=t.endDate;$('#itemDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);$('#itemTime').value=i?.time||'';$('#itemCustomName').value=i?.customName||'';$('#itemGoogleName').value=i?.googleName||'';$('#itemCategory').value=i?.category||'관광';$('#itemAddress').value=i?.address||'';$('#itemLat').value=i?.lat??'';$('#itemLng').value=i?.lng??'';$('#itemNotes').value=i?.notes||'';selectedPlaceId=i?.placeId||'';openModal('itemModal');
+    $('#itemModalTitle').textContent=i?'일정 수정':'일정 추가'; $('#itemId').value=i?.id||''; $('#itemDate').min=t.startDate;$('#itemDate').max=t.endDate;$('#itemDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);$('#itemTime').value=normalizeTime24(i?.time||'')??'';$('#itemCustomName').value=i?.customName||'';$('#itemGoogleName').value=i?.googleName||'';$('#itemCategory').value=i?.category||'관광';$('#itemAddress').value=i?.address||'';$('#itemLat').value=i?.lat??'';$('#itemLng').value=i?.lng??'';$('#itemNotes').value=i?.notes||'';selectedPlaceId=i?.placeId||'';resetPlaceSearchUI();openModal('itemModal');
   }
   function openMemoEdit(id=null){
     const i=id?state.items.find(x=>x.id===id&&isMemoItem(x)):null; const t=trip(); if(!t)return toast('여행을 먼저 만들어주세요.');
     $('#memoModalTitle').textContent=i?'메모 수정':'메모 추가';
     $('#memoId').value=i?.id||'';
     $('#memoDate').min=t.startDate;$('#memoDate').max=t.endDate;$('#memoDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);
-    $('#memoTime').value=i?.time||'';
+    $('#memoTime').value=normalizeTime24(i?.time||'')??'';
     $('#memoTitle').value=i?.customName||'';
     $('#memoBody').value=i?.notes||'';
     openModal('memoModal');
@@ -964,7 +1071,11 @@
   });
 
   $('#itemForm').addEventListener('submit',e=>{
-    e.preventDefault(); const id=$('#itemId').value||uid('item'); const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===$('#itemDate').value&&i.id!==id); const obj={id,tripId:currentTripId,entryType:'schedule',date:$('#itemDate').value,time:$('#itemTime').value,customName:$('#itemCustomName').value.trim(),googleName:$('#itemGoogleName').value.trim(),category:$('#itemCategory').value,address:$('#itemAddress').value.trim(),lat:$('#itemLat').value===''?null:Number($('#itemLat').value),lng:$('#itemLng').value===''?null:Number($('#itemLng').value),placeId:selectedPlaceId||'',notes:$('#itemNotes').value.trim(),order:sameDate.length,updatedAt:new Date().toISOString()};
+    e.preventDefault();
+    const time=readTime24('#itemTime'); if(time===null)return;
+    const id=$('#itemId').value||uid('item');
+    const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===$('#itemDate').value&&i.id!==id);
+    const obj={id,tripId:currentTripId,entryType:'schedule',date:$('#itemDate').value,time,customName:$('#itemCustomName').value.trim(),googleName:$('#itemGoogleName').value.trim(),category:$('#itemCategory').value,address:$('#itemAddress').value.trim(),lat:$('#itemLat').value===''?null:Number($('#itemLat').value),lng:$('#itemLng').value===''?null:Number($('#itemLng').value),placeId:selectedPlaceId||'',notes:$('#itemNotes').value.trim(),order:sameDate.length,updatedAt:new Date().toISOString()};
     const idx=state.items.findIndex(i=>i.id===id);if(idx>=0)obj.order=state.items[idx].order??obj.order, state.items[idx]={...state.items[idx],...obj};else state.items.push({...obj,createdAt:new Date().toISOString()});closeModal('itemModal');saveState();toast('일정을 저장했습니다.');
   });
 
@@ -973,8 +1084,9 @@
     const id=$('#memoId').value||uid('memo');
     const date=$('#memoDate').value;
     const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===date&&i.id!==id);
+    const time=readTime24('#memoTime'); if(time===null)return;
     const now=new Date().toISOString();
-    const obj={id,tripId:currentTripId,entryType:'memo',date,time:$('#memoTime').value,customName:$('#memoTitle').value.trim(),googleName:'',category:'메모',address:'',lat:null,lng:null,placeId:'',notes:$('#memoBody').value.trim(),order:sameDate.length,updatedAt:now};
+    const obj={id,tripId:currentTripId,entryType:'memo',date,time,customName:$('#memoTitle').value.trim(),googleName:'',category:'메모',address:'',lat:null,lng:null,placeId:'',notes:$('#memoBody').value.trim(),order:sameDate.length,updatedAt:now};
     const idx=state.items.findIndex(i=>i.id===id);
     if(idx>=0){obj.order=state.items[idx].order??obj.order;state.items[idx]={...state.items[idx],...obj};}
     else state.items.push({...obj,createdAt:now});
@@ -1054,6 +1166,10 @@
   $('#galleryNext').onclick=()=>{if(!galleryPhotos.length)return;galleryIndex=(galleryIndex+1)%galleryPhotos.length;renderGalleryPhoto()};
   $('#galleryDelete').onclick=async()=>{const p=galleryPhotos[galleryIndex];if(!p||!confirm('현재 사진을 삭제할까요?'))return;await photoDB.delete(p.id);galleryPhotos.splice(galleryIndex,1);if(galleryIndex>=galleryPhotos.length)galleryIndex=Math.max(0,galleryPhotos.length-1);await renderTimeline();await renderPhotos();await renderHero();if(galleryPhotos.length)renderGalleryPhoto();else closeModal('galleryModal')};
 
+  $$('.time-24').forEach(el=>el.addEventListener('blur',()=>{const v=normalizeTime24(el.value);if(v!==null)el.value=v;}));
+  $('#placeSearchBtn').onclick=()=>searchGooglePlaces();
+  $('#placeSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchGooglePlaces();}});
+
   $('#newTripBtn').onclick=()=>openTripEdit(); $('#homeNewTripBtn').onclick=()=>openTripEdit(); $('#homeBtn').onclick=showHome; $('#homeBtn2').onclick=showHome; $('#editTripBtn').onclick=()=>trip()?openTripEdit(currentTripId):toast('여행을 먼저 만들어주세요.'); $('#addMemoBtn').onclick=()=>openMemoEdit(); $('#addItemBtn').onclick=()=>openItemEdit(); $('#quickAddMemoBtn').onclick=()=>openMemoEdit(); $('#quickAddItemBtn').onclick=()=>openItemEdit(); $('#addExpenseBtn').onclick=openExpense;
   $('#calendarExportBtn').onclick=exportCalendarIcs;$('#expenseCsvBtn').onclick=exportExpensesCsv;$('#toolsBtn').onclick=()=>openModal('toolsModal');$('#homeAccountBtn').onclick=openAccount;$('#detailAccountBtn').onclick=openAccount;$('#authGateLoginBtn').onclick=()=>openModal('authModal');$('#homeSearch').oninput=renderHome;
   $('#toolBackupBtn').onclick=backup;$('#toolRestoreBtn').onclick=()=>$('#restoreInput').click();$('#toolCalendarBtn').onclick=exportCalendarIcs;$('#toolExpenseCsvBtn').onclick=exportExpensesCsv;$('#duplicateTripBtn').onclick=duplicateCurrentTrip;$('#deleteTripBtn').onclick=deleteCurrentTrip;$('#restoreInput').onchange=e=>e.target.files[0]&&restore(e.target.files[0]);
@@ -1075,9 +1191,9 @@
     try{
       const {Map}=await google.maps.importLibrary('maps');
       map=new Map($('#map'),{center:{lat:36.2,lng:138.2},zoom:5,mapId:CONFIG.GOOGLE_MAP_ID,streetViewControl:false,mapTypeControl:false,fullscreenControl:false}); $('#mapPlaceholder').classList.add('hidden');
-      const {PlaceAutocompleteElement}=await google.maps.importLibrary('places');
-      placeAutocomplete=new PlaceAutocompleteElement({}); $('#placeAutocompleteHost').replaceChildren(placeAutocomplete); $('#placeSearchHelp').textContent='Google에서 장소를 선택하면 지도 위치가 자동으로 저장됩니다. 아래 “내가 표시할 장소명”은 원하는 한국어 이름으로 자유롭게 바꿀 수 있습니다.';
-      placeAutocomplete.addEventListener('gmp-select',async ({placePrediction})=>{const place=placePrediction.toPlace();await place.fetchFields({fields:['displayName','formattedAddress','location','id']});selectedPlaceId=place.id||'';$('#itemGoogleName').value=place.displayName||'';if(!$('#itemCustomName').value)$('#itemCustomName').value=place.displayName||'';$('#itemAddress').value=place.formattedAddress||'';if(place.location){$('#itemLat').value=place.location.lat();$('#itemLng').value=place.location.lng();map.panTo(place.location);map.setZoom(13);}});
+      const {Place}=await google.maps.importLibrary('places');
+      PlaceSearchClass=Place;
+      $('#placeSearchHelp').textContent='장소명을 입력하고 검색하세요. 최대 20개 결과를 스크롤해서 확인할 수 있으며, 선택하면 지도 위치가 자동 저장됩니다.';
       renderMapMarkers();
     }catch(e){console.error('Google Maps init failed',e);toast('Google Maps를 불러오지 못했습니다.');}
   };
