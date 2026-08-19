@@ -328,7 +328,7 @@
     <div class="map-placeholder" id="mapPlaceholder">
       <div class="map-placeholder-card">
         <h2>지도는 항상 이 자리에.</h2>
-        <p>Google Maps API 키를 넣으면 여행 일정이 번호 핀으로 표시되고, 일정 순서를 바꾸면 지도 순서도 함께 바뀝니다. 핀을 직접 끌어 위치를 미세 조정할 수도 있습니다.</p>
+        <p>여행 일정이 번호 핀으로 표시되고, 일정 순서를 바꾸면 지도 번호도 함께 바뀝니다. 같은 장소를 여러 번 방문하면 핀이 겹치지 않도록 살짝 나누어 표시됩니다.</p>
         <div class="map-badge">현재: 로컬 테스트 모드</div>
       </div>
     </div>
@@ -942,14 +942,13 @@
     ids.forEach((id,idx)=>{const item=state.items.find(i=>i.id===id);if(item)item.order=idx}); saveState(); toast('일정 순서를 변경했습니다.');
   }
   function applyMarkerStyles(){
-    markers.forEach(({itemId,item,pin,marker})=>{
+    markers.forEach(({itemId,pin,marker})=>{
       const isSelected=itemId===selectedItemId;
-      const isActive=mapDayFilter==='all'||item.date===mapDayFilter;
-      pin.background=isSelected?'#1D3028':(isActive?'#2F473B':'#A8B4AE');
-      pin.borderColor=isSelected?'#13221B':(isActive?'#1D3028':'#7F9188');
+      pin.background=isSelected?'#1D3028':'#2F473B';
+      pin.borderColor=isSelected?'#13221B':'#1D3028';
       pin.glyphColor='#FFFFFF';
-      pin.scale=isSelected?1.32:(isActive?1.05:.90);
-      marker.zIndex=isSelected?100:(isActive?10:1);
+      pin.scale=isSelected?1.32:1.05;
+      marker.zIndex=isSelected?100:10;
     });
   }
   function selectItem(id){
@@ -1009,31 +1008,115 @@
     if(mapDayFilter!=='all'&&!ds.includes(mapDayFilter)) mapDayFilter='all';
     sel.value=mapDayFilter; sel.onchange=()=>{mapDayFilter=sel.value;renderMapMarkers()};
   }
-  async function renderMapMarkers(){
-    const items=tripItems().filter(i=>hasValidCoords(i));
-    const activeItems=items.filter(i=>mapDayFilter==='all'||i.date===mapDayFilter);
-    $('#mapLegend').textContent=mapDayFilter==='all'?`핀 ${items.length}개`:`DAY ${dayNo(mapDayFilter)} · 핀 ${activeItems.length}개`;
-    if(!map||!window.google?.maps?.marker) return;
-    markers.forEach(x=>x.marker.map=null); markers=[]; if(routeLine){routeLine.setMap(null);routeLine=null}
-    const {AdvancedMarkerElement,PinElement}=await google.maps.importLibrary('marker');
-    items.forEach((i,idx)=>{
-      const isActive=mapDayFilter==='all'||i.date===mapDayFilter;
-      const dayItems=tripItems().filter(x=>x.date===i.date&&hasValidCoords(x));
-      const dayIndex=dayItems.findIndex(x=>x.id===i.id);
-      const glyph=mapDayFilter==='all'?String(idx+1):String(dayIndex+1);
-      const pin=new PinElement({glyph,background:isActive?'#2F473B':'#A8B4AE',borderColor:isActive?'#1D3028':'#7F9188',glyphColor:'#FFFFFF',scale:isActive?1.05:.90});
-      const marker=new AdvancedMarkerElement({map,position:{lat:Number(i.lat),lng:Number(i.lng)},title:i.customName,content:pin.element,gmpDraggable:false,zIndex:isActive?10:1});
-      marker.addListener('click',()=>{selectItem(i.id); const el=document.querySelector(`[data-item-id="${CSS.escape(i.id)}"]`); if(el)el.scrollIntoView({behavior:'smooth',block:'center'})});
-      markers.push({itemId:i.id,item:i,pin,marker});
+
+  function markerOverlapOffsets(items){
+    const groups=new Map();
+    items.forEach(i=>{
+      // Google Places에서 동일 장소를 다시 선택하면 좌표가 사실상 같으므로
+      // 약 0.1m 수준인 소수점 6자리까지 묶어 같은 장소로 취급합니다.
+      const key=`${Number(i.lat).toFixed(6)},${Number(i.lng).toFixed(6)}`;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(i);
     });
-    const routeItems=mapDayFilter==='all'?items:activeItems;
-    if(routeItems.length>=2){routeLine=new google.maps.Polyline({path:routeItems.map(i=>({lat:Number(i.lat),lng:Number(i.lng)})),geodesic:true,strokeColor:'#2F473B',strokeOpacity:.62,strokeWeight:4,map});}
-    applyMarkerStyles();
-    const viewItems=mapDayFilter==='all'?items:activeItems;
-    if(viewItems.length===1){map.setCenter({lat:Number(viewItems[0].lat),lng:Number(viewItems[0].lng)});map.setZoom(13);}
-    else if(viewItems.length>=2){const bounds=new google.maps.LatLngBounds();viewItems.forEach(i=>bounds.extend({lat:Number(i.lat),lng:Number(i.lng)}));map.fitBounds(bounds,70);google.maps.event.addListenerOnce(map,'idle',()=>{if((map.getZoom()||0)>14)map.setZoom(14);});}
+    const offsets=new Map();
+    groups.forEach(group=>{
+      const n=group.length;
+      if(n===1){offsets.set(group[0].id,{x:0,y:0});return;}
+      // 실제 좌표는 변경하지 않고 지도 마커의 화면 표시만 원형으로 분산합니다.
+      const radius=n<=2?20:n<=4?24:n<=8?29:34;
+      group.forEach((item,index)=>{
+        const angle=(-Math.PI/2)+(Math.PI*2*index/n);
+        offsets.set(item.id,{
+          x:Math.round(Math.cos(angle)*radius),
+          y:Math.round(Math.sin(angle)*radius)
+        });
+      });
+    });
+    return offsets;
   }
 
+  async function renderMapMarkers(){
+    const items=tripItems().filter(i=>hasValidCoords(i));
+    const visibleItems=mapDayFilter==='all'?items:items.filter(i=>i.date===mapDayFilter);
+    $('#mapLegend').textContent=mapDayFilter==='all'?`핀 ${items.length}개`:`DAY ${dayNo(mapDayFilter)} · 핀 ${visibleItems.length}개`;
+
+    if(!map||!window.google?.maps?.marker) return;
+
+    // 필터가 바뀔 때 기존 마커를 모두 제거한 뒤, 현재 보여야 할 핀만 다시 생성합니다.
+    markers.forEach(x=>x.marker.map=null);
+    markers=[];
+    if(routeLine){routeLine.setMap(null);routeLine=null}
+
+    const {AdvancedMarkerElement,PinElement}=await google.maps.importLibrary('marker');
+    const overlapOffsets=markerOverlapOffsets(visibleItems);
+
+    visibleItems.forEach((i,visibleIndex)=>{
+      // 전체 보기에서는 여행 전체 순번, 날짜 보기에서는 그 날짜 안의 순번을 사용합니다.
+      const glyph=mapDayFilter==='all'
+        ? String(items.findIndex(x=>x.id===i.id)+1)
+        : String(visibleIndex+1);
+
+      const pin=new PinElement({
+        glyph,
+        background:'#2F473B',
+        borderColor:'#1D3028',
+        glyphColor:'#FFFFFF',
+        scale:1.05
+      });
+
+      // 동일 좌표의 핀들이 완전히 겹치지 않도록 실제 좌표는 그대로 두고
+      // 마커 콘텐츠만 픽셀 단위로 살짝 이동시킵니다.
+      const offset=overlapOffsets.get(i.id)||{x:0,y:0};
+      const wrapper=document.createElement('div');
+      wrapper.style.transform=`translate(${offset.x}px, ${offset.y}px)`;
+      wrapper.style.transformOrigin='50% 100%';
+      wrapper.style.willChange='transform';
+      wrapper.appendChild(pin.element);
+
+      const marker=new AdvancedMarkerElement({
+        map,
+        position:{lat:Number(i.lat),lng:Number(i.lng)},
+        title:i.customName,
+        content:wrapper,
+        gmpDraggable:false,
+        zIndex:10+visibleIndex
+      });
+
+      marker.addListener('click',()=>{
+        selectItem(i.id);
+        const el=document.querySelector(`[data-item-id="${CSS.escape(i.id)}"]`);
+        if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+      });
+
+      markers.push({itemId:i.id,item:i,pin,marker,wrapper,offset});
+    });
+
+    // 경로선은 핀의 표시 오프셋이 아니라 실제 저장 좌표를 사용합니다.
+    if(visibleItems.length>=2){
+      routeLine=new google.maps.Polyline({
+        path:visibleItems.map(i=>({lat:Number(i.lat),lng:Number(i.lng)})),
+        geodesic:true,
+        strokeColor:'#2F473B',
+        strokeOpacity:.62,
+        strokeWeight:4,
+        map
+      });
+    }
+
+    applyMarkerStyles();
+
+    if(visibleItems.length===1){
+      map.setCenter({lat:Number(visibleItems[0].lat),lng:Number(visibleItems[0].lng)});
+      map.setZoom(13);
+    }else if(visibleItems.length>=2){
+      const bounds=new google.maps.LatLngBounds();
+      visibleItems.forEach(i=>bounds.extend({lat:Number(i.lat),lng:Number(i.lng)}));
+      map.fitBounds(bounds,70);
+      google.maps.event.addListenerOnce(map,'idle',()=>{
+        if((map.getZoom()||0)>14)map.setZoom(14);
+      });
+    }
+  }
 
   function renderTabs(){
     $$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===activeTab));
