@@ -99,6 +99,13 @@
     .item-card:hover{border-color:#c8bbaa;box-shadow:0 9px 24px rgba(35,31,24,.07)}
     .item-card.dragging{opacity:.45;transform:scale(.99)}
     .item-card.selected{outline:2px solid rgba(47,71,59,.24);border-color:#2F473B;box-shadow:0 10px 28px rgba(47,71,59,.12)}
+    .item-card.memo-card{background:#f4f2e9;border-style:dashed;border-color:#b8b09d}
+    .item-card.memo-card:hover{border-color:#7e8c83;box-shadow:0 9px 24px rgba(47,71,59,.08)}
+    .item-card.memo-card.selected{border-style:solid;border-color:#2F473B}
+    .memo-card .drag-handle{background:#2F473B;color:#fff}
+    .memo-card .item-time{color:#2F473B}
+    .memo-card .item-title{color:#263b31}
+    .memo-kicker{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;background:#e2e8e3;color:#2F473B;font-size:10px;font-weight:900;margin-bottom:5px}
     .drag-handle{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--panel-2);font-weight:900;color:var(--muted);user-select:none}
     .item-time{font-size:12px;color:var(--accent);font-weight:900;margin-bottom:3px}
     .item-title{font-size:18px;font-weight:900;margin:0 0 4px;line-height:1.25}
@@ -144,21 +151,24 @@
     .total-card span{font-size:11px;opacity:.7}.total-card strong{display:block;margin-top:5px;font-size:21px;font-variant-numeric:tabular-nums}
     .category-summary{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
     .category-summary .tag{background:var(--panel);border:1px solid var(--line)}
-    .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(24,25,22,.5);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px}
+    .modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(24,25,22,.5);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px}
     .modal-backdrop.open{display:flex}
-    .modal{width:min(680px,100%);max-height:92vh;overflow:auto;background:var(--panel);border:1px solid rgba(255,255,255,.6);border-radius:22px;box-shadow:0 30px 90px rgba(0,0,0,.25);padding:20px}
+    #authModal{z-index:1200}
+    .modal{width:min(680px,100%);max-width:100%;max-height:92vh;max-height:92dvh;overflow:auto;overflow-x:hidden;background:var(--panel);border:1px solid rgba(255,255,255,.6);border-radius:22px;box-shadow:0 30px 90px rgba(0,0,0,.25);padding:20px}
     .modal h3{font-family:"Nanum Gothic","Noto Sans KR",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:28px;margin:0 0 16px}
+    .modal form,.form-grid,.field{min-width:0;max-width:100%}
     .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     .field{display:grid;gap:6px}.field.full{grid-column:1/-1}
     .field label{font-size:11px;font-weight:850;color:var(--muted);letter-spacing:.03em}
-    .field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#fff;padding:11px 12px;border-radius:11px;outline:none;color:var(--ink)}
+    .field input,.field select,.field textarea{display:block;width:100%;min-width:0;max-width:100%;border:1px solid var(--line);background:#fff;padding:11px 12px;border-radius:11px;outline:none;color:var(--ink)}
     .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(182,91,66,.12)}
     .field textarea{min-height:88px;resize:vertical}
     .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
     .place-search-wrap{padding:12px;border:1px dashed var(--line);border-radius:12px;background:var(--panel-2)}
     .place-search-wrap small{display:block;color:var(--muted);line-height:1.5;margin-bottom:8px}
-    #placeAutocompleteHost{min-height:44px}
-    gmp-place-autocomplete{width:100%;--gmp-mat-color-surface:#fff}
+    #placeAutocompleteHost{width:100%;max-width:100%;min-width:0;min-height:44px;overflow:hidden}
+    .place-search-wrap{min-width:0;max-width:100%;overflow:hidden}
+    gmp-place-autocomplete{display:block;width:100%!important;max-width:100%!important;min-width:0!important;--gmp-mat-color-surface:#fff}
     .notice{padding:10px 12px;border-radius:11px;background:#fff8e7;border:1px solid #ead8aa;color:#705f37;font-size:12px;line-height:1.5}
     .toast{position:fixed;z-index:200;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1f221f;color:#fff;padding:11px 14px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 12px 30px rgba(0,0,0,.22);font-size:13px}
     .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -183,8 +193,9 @@
       .home-view{padding:20px 14px 56px}.home-header{margin-bottom:42px}.home-intro h1{font-size:40px}.trip-grid{grid-template-columns:1fr}
       .content{padding-left:12px;padding-right:12px}.brand{font-size:21px}.brand small{display:none}.header-actions .btn:not(.primary):not(.account-btn){display:none}.sync-pill{display:none}
       .trip-hero{padding:18px;border-radius:20px}.trip-title-row{display:block}.trip-select{margin:8px 0 0;width:100%;max-width:none}.trip-title{font-size:30px}.summary-row{grid-template-columns:1fr 1fr}.summary-row .summary:last-child{grid-column:1/-1}
-      .section-toolbar{flex-wrap:wrap}.section-toolbar .spacer{display:none}.section-toolbar .btn{margin-left:auto}.item-card{grid-template-columns:38px minmax(0,1fr)}.item-actions{grid-column:2;justify-content:flex-start;max-width:none}.item-photo-thumb{width:112px}
+      .section-toolbar{flex-wrap:wrap;gap:8px}.section-toolbar .spacer{display:none}.section-toolbar h2{flex:1 0 100%}.section-toolbar .btn{margin-left:0}.item-card{grid-template-columns:38px minmax(0,1fr)}.item-actions{grid-column:2;justify-content:flex-start;max-width:none}.item-photo-thumb{width:112px}
       .photo-grid{grid-template-columns:repeat(2,1fr)}.tool-grid{grid-template-columns:1fr}.auth-card{padding:22px}.expense-row{grid-template-columns:78px minmax(0,1fr) auto}.expense-row .btn{grid-column:2/-1;justify-self:start}.expense-amount{font-size:13px}.totals{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
+      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px}#placeAutocompleteHost,gmp-place-autocomplete{width:100%!important;max-width:100%!important;min-width:0!important}
     }
   </style>
 </head>
@@ -258,6 +269,7 @@
         <h2>일정</h2><div class="spacer"></div>
         <button class="btn" id="calendarExportBtn">캘린더</button>
         <button class="btn" id="editTripBtn">여행 정보</button>
+        <button class="btn" id="addMemoBtn">+ 메모 추가</button>
         <button class="btn accent" id="addItemBtn">+ 일정 추가</button>
       </div>
       <div class="day-pills" id="dayPills"></div>
@@ -340,6 +352,22 @@
         <div class="field full"><label>메모</label><textarea id="itemNotes" placeholder="예약시간, 교통편, 입장 방법 등을 기록하세요."></textarea></div>
       </div>
       <div class="modal-actions"><button type="button" class="btn" data-close="itemModal">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="memoModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="memoModalTitle">
+    <h3 id="memoModalTitle">메모 추가</h3>
+    <form id="memoForm">
+      <input type="hidden" id="memoId" />
+      <div class="form-grid">
+        <div class="field"><label>날짜</label><input id="memoDate" type="date" required /></div>
+        <div class="field"><label>시간</label><input id="memoTime" type="time" /></div>
+        <div class="field full"><label>제목 *</label><input id="memoTitle" required placeholder="예: 여권과 입장권 챙기기" /></div>
+        <div class="field full"><label>메모 *</label><textarea id="memoBody" required placeholder="일정 사이에 기억해둘 준비물, 약속, 주의사항 등을 적어두세요."></textarea></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn" data-close="memoModal">취소</button><button class="btn primary" type="submit">저장</button></div>
     </form>
   </div>
 </div>
@@ -523,6 +551,8 @@
   function applyCloudPayload(payload){if(!payload||!Array.isArray(payload.trips)||!Array.isArray(payload.items)||!Array.isArray(payload.expenses))return false;state.version=payload.version||2;state.trips=payload.trips;state.items=payload.items;state.expenses=payload.expenses;if(!state.trips.some(t=>t.id===currentTripId))currentTripId=state.trips[0]?.id||null;saveLocalSnapshotOnly();renderAll();return true;}
   function trip(){ return state.trips.find(t=>t.id===currentTripId) || null; }
   function tripItems(){ return state.items.filter(i=>i.tripId===currentTripId).sort(sortItems); }
+  function isMemoItem(i){ return i?.entryType==='memo'; }
+  function tripScheduleItems(){ return tripItems().filter(i=>!isMemoItem(i)); }
   function tripExpenses(){ return state.expenses.filter(e=>e.tripId===currentTripId).sort((a,b)=>((a.date||'')+(a.createdAt||'')).localeCompare((b.date||'')+(b.createdAt||''))); }
   function sortItems(a,b){ return (a.date.localeCompare(b.date)) || ((a.order??0)-(b.order??0)) || (a.time||'').localeCompare(b.time||''); }
   function tripDates(){
@@ -660,7 +690,7 @@
     }
     $('#tripKicker').textContent='JOURNEY ARCHIVE'; $('#tripTitle').textContent=t.name;
     $('#tripMeta').innerHTML=`<span>${escapeHtml(fmtPeriod(t.startDate,t.endDate))}</span><span>${escapeHtml(t.destination||'여행지 미입력')}</span>`;
-    $('#summarySchedule').textContent=`${tripItems().length}개 장소`;
+    $('#summarySchedule').textContent=`${tripScheduleItems().length}개 장소`;
     const photos=await photoDB.getByTrip(t.id); $('#summaryPhotos').textContent=`${photos.length}장`;
     const totals=currencyTotals(); const keys=Object.keys(totals);
     $('#summaryExpense').textContent=keys.length?keys.slice(0,2).map(c=>`${c} ${formatMoney(totals[c],c)}`).join(' · '):'기록 없음';
@@ -685,7 +715,7 @@
     const box=$('#timeline'); const t=trip();
     if(!t){box.innerHTML='<div class="empty"><strong>아직 여행이 없습니다.</strong>상단의 “새 여행” 버튼으로 첫 여행을 만들어보세요.</div>';return}
     const items=tripItems().filter(i=>scheduleDayFilter==='all'||i.date===scheduleDayFilter);
-    if(!items.length){box.innerHTML='<div class="empty"><strong>이 날짜에는 아직 일정이 없습니다.</strong>장소와 시간을 추가하면 오른쪽 지도에도 같은 순서로 표시됩니다.</div>';return}
+    if(!items.length){box.innerHTML='<div class="empty"><strong>이 날짜에는 아직 일정이나 메모가 없습니다.</strong>일정을 추가하거나, 일정 사이에 기억할 메모를 남겨보세요.</div>';return}
     const allPhotos=await photoDB.getByTrip(t.id);
     const photosByItem={};
     allPhotos.forEach(p=>{ if(p.itemId) (photosByItem[p.itemId]??=[]).push(p); });
@@ -695,7 +725,7 @@
       <div class="day-group">
         <div class="day-heading"><strong>DAY ${dayNo(date)}</strong><span>${escapeHtml(fmtDate(date))}</span></div>
         <div class="itinerary-list" data-date="${date}">
-          ${list.map((i,idx)=>itemCard(i,idx+1,photosByItem[i.id]||[])).join('')}
+          ${(()=>{let scheduleNo=0;return list.map(i=>itemCard(i,isMemoItem(i)?null:++scheduleNo,photosByItem[i.id]||[])).join('')})()}
         </div>
       </div>`).join('');
     for(const [itemId,list] of Object.entries(photosByItem)){
@@ -712,13 +742,29 @@
   }
 
   function itemCard(i,idx,photos=[]){
+    const isMemo=isMemoItem(i);
+    if(isMemo){
+      return `<article class="item-card memo-card${selectedItemId===i.id?' selected':''}" draggable="true" data-item-id="${i.id}" data-date="${i.date}" data-entry-type="memo">
+        <div class="drag-handle" title="드래그해서 순서 변경">✎</div>
+        <div>
+          <div class="memo-kicker">MEMO</div>
+          <div class="item-time">${escapeHtml(i.time||'시간 미정')}</div>
+          <h3 class="item-title">${escapeHtml(i.customName||'메모')}</h3>
+          ${i.notes?`<div class="item-notes">${escapeHtml(i.notes)}</div>`:''}
+        </div>
+        <div class="item-actions">
+          <button class="btn small edit-memo" type="button">수정</button>
+          <button class="btn small danger delete-item" type="button">삭제</button>
+        </div>
+      </article>`;
+    }
     const exp=tripExpenses().filter(e=>e.itemId===i.id);
     const costBlock=exp.length?`<div class="item-costs">${exp.map(e=>`<span class="item-cost">${escapeHtml(e.category)} ${escapeHtml(e.currency)} ${formatMoney(e.amount,e.currency)}</span>`).join('')}</div>`:'';
     const visiblePhotos=photos.slice(0,5);
     const photoBlock=visiblePhotos.length?`<div class="item-photo-wrap">
       <div class="item-photo-strip">${visiblePhotos.map((p,n)=>`<button class="item-photo-thumb open-item-gallery" type="button" data-thumb-item="${i.id}" data-thumb-photo="${p.id}" title="사진 보기"><img alt="${escapeHtml(i.customName)} 사진 ${n+1}"></button>`).join('')}</div>
     </div>`:'';
-    return `<article class="item-card${selectedItemId===i.id?' selected':''}" draggable="true" data-item-id="${i.id}" data-date="${i.date}">
+    return `<article class="item-card${selectedItemId===i.id?' selected':''}" draggable="true" data-item-id="${i.id}" data-date="${i.date}" data-entry-type="schedule">
       <div class="drag-handle" title="드래그해서 순서 변경">${idx}</div>
       <div>
         <div class="item-time">${escapeHtml(i.time||'시간 미정')} · ${escapeHtml(i.category||'기타')}</div>
@@ -741,9 +787,10 @@
     let dragged=null;
     $$('.item-card').forEach(card=>{
       card.addEventListener('click',e=>{if(e.target.closest('button,a'))return;selectItem(card.dataset.itemId)});
-      card.querySelector('.edit-item').onclick=()=>openItemEdit(card.dataset.itemId);
-      card.querySelector('.delete-item').onclick=()=>deleteItem(card.dataset.itemId);
-      card.querySelector('.add-item-photo').onclick=()=>openPhotoForItem(card.dataset.itemId);
+      card.querySelector('.edit-item')?.addEventListener('click',()=>openItemEdit(card.dataset.itemId));
+      card.querySelector('.edit-memo')?.addEventListener('click',()=>openMemoEdit(card.dataset.itemId));
+      card.querySelector('.delete-item')?.addEventListener('click',()=>deleteItem(card.dataset.itemId));
+      card.querySelector('.add-item-photo')?.addEventListener('click',()=>openPhotoForItem(card.dataset.itemId));
       card.querySelectorAll('.open-item-gallery').forEach(galleryBtn=>galleryBtn.onclick=()=>openGalleryForItem(card.dataset.itemId,galleryBtn.dataset.thumbPhoto||''));
       card.addEventListener('dragstart',e=>{if(e.target.closest('button,a')){e.preventDefault();return;}dragged=card;card.classList.add('dragging')});
       card.addEventListener('dragend',()=>{card.classList.remove('dragging');dragged=null;persistOrder(card.dataset.date)});
@@ -776,7 +823,7 @@
     selectedItemId=id||'';
     $$('.item-card').forEach(c=>c.classList.toggle('selected',c.dataset.itemId===selectedItemId));
     applyMarkerStyles();
-    const idx=markers.findIndex(m=>m.itemId===id); if(idx>=0&&map){ const m=markers[idx]; map.panTo(m.marker.position); map.setZoom(Math.max(map.getZoom()||12,15)); }
+    const idx=markers.findIndex(m=>m.itemId===id); if(idx>=0&&map){ const m=markers[idx]; map.panTo(m.marker.position); const z=map.getZoom()||12; map.setZoom(Math.min(Math.max(z,13),14)); }
   }
 
 
@@ -801,7 +848,7 @@
     $$('[data-del-exp]').forEach(b=>b.onclick=()=>{if(confirm('이 비용을 삭제할까요?')){state.expenses=state.expenses.filter(e=>e.id!==b.dataset.delExp);saveState()}});
   }
   function renderExpenseForms(){
-    const opts=tripItems().map(i=>`<option value="${i.id}">${escapeHtml(i.date)} · ${escapeHtml(i.customName)}</option>`).join('');
+    const opts=tripScheduleItems().map(i=>`<option value="${i.id}">${escapeHtml(i.date)} · ${escapeHtml(i.customName)}</option>`).join('');
     $('#expenseItem').innerHTML='<option value="">연결하지 않음</option>'+opts;
   }
 
@@ -850,7 +897,9 @@
     const routeItems=mapDayFilter==='all'?items:activeItems;
     if(routeItems.length>=2){routeLine=new google.maps.Polyline({path:routeItems.map(i=>({lat:Number(i.lat),lng:Number(i.lng)})),geodesic:true,strokeColor:'#2F473B',strokeOpacity:.62,strokeWeight:4,map});}
     applyMarkerStyles();
-    if(items.length){const bounds=new google.maps.LatLngBounds();items.forEach(i=>bounds.extend({lat:Number(i.lat),lng:Number(i.lng)}));map.fitBounds(bounds,58);}
+    const viewItems=mapDayFilter==='all'?items:activeItems;
+    if(viewItems.length===1){map.setCenter({lat:Number(viewItems[0].lat),lng:Number(viewItems[0].lng)});map.setZoom(13);}
+    else if(viewItems.length>=2){const bounds=new google.maps.LatLngBounds();viewItems.forEach(i=>bounds.extend({lat:Number(i.lat),lng:Number(i.lng)}));map.fitBounds(bounds,70);google.maps.event.addListenerOnce(map,'idle',()=>{if((map.getZoom()||0)>14)map.setZoom(14);});}
   }
 
 
@@ -868,6 +917,17 @@
     const i=id?state.items.find(x=>x.id===id):null; const t=trip(); if(!t)return toast('여행을 먼저 만들어주세요.');
     $('#itemModalTitle').textContent=i?'일정 수정':'일정 추가'; $('#itemId').value=i?.id||''; $('#itemDate').min=t.startDate;$('#itemDate').max=t.endDate;$('#itemDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);$('#itemTime').value=i?.time||'';$('#itemCustomName').value=i?.customName||'';$('#itemGoogleName').value=i?.googleName||'';$('#itemCategory').value=i?.category||'관광';$('#itemAddress').value=i?.address||'';$('#itemLat').value=i?.lat??'';$('#itemLng').value=i?.lng??'';$('#itemNotes').value=i?.notes||'';selectedPlaceId=i?.placeId||'';openModal('itemModal');
   }
+  function openMemoEdit(id=null){
+    const i=id?state.items.find(x=>x.id===id&&isMemoItem(x)):null; const t=trip(); if(!t)return toast('여행을 먼저 만들어주세요.');
+    $('#memoModalTitle').textContent=i?'메모 수정':'메모 추가';
+    $('#memoId').value=i?.id||'';
+    $('#memoDate').min=t.startDate;$('#memoDate').max=t.endDate;$('#memoDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);
+    $('#memoTime').value=i?.time||'';
+    $('#memoTitle').value=i?.customName||'';
+    $('#memoBody').value=i?.notes||'';
+    openModal('memoModal');
+  }
+
   async function deleteItem(id){
     const linked=await photoDB.getByItem(id);
     const photoMsg=linked.length?` 연결된 사진 ${linked.length}장도 함께 삭제됩니다.`:'';
@@ -883,8 +943,21 @@
   });
 
   $('#itemForm').addEventListener('submit',e=>{
-    e.preventDefault(); const id=$('#itemId').value||uid('item'); const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===$('#itemDate').value&&i.id!==id); const obj={id,tripId:currentTripId,date:$('#itemDate').value,time:$('#itemTime').value,customName:$('#itemCustomName').value.trim(),googleName:$('#itemGoogleName').value.trim(),category:$('#itemCategory').value,address:$('#itemAddress').value.trim(),lat:$('#itemLat').value===''?null:Number($('#itemLat').value),lng:$('#itemLng').value===''?null:Number($('#itemLng').value),placeId:selectedPlaceId||'',notes:$('#itemNotes').value.trim(),order:sameDate.length,updatedAt:new Date().toISOString()};
+    e.preventDefault(); const id=$('#itemId').value||uid('item'); const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===$('#itemDate').value&&i.id!==id); const obj={id,tripId:currentTripId,entryType:'schedule',date:$('#itemDate').value,time:$('#itemTime').value,customName:$('#itemCustomName').value.trim(),googleName:$('#itemGoogleName').value.trim(),category:$('#itemCategory').value,address:$('#itemAddress').value.trim(),lat:$('#itemLat').value===''?null:Number($('#itemLat').value),lng:$('#itemLng').value===''?null:Number($('#itemLng').value),placeId:selectedPlaceId||'',notes:$('#itemNotes').value.trim(),order:sameDate.length,updatedAt:new Date().toISOString()};
     const idx=state.items.findIndex(i=>i.id===id);if(idx>=0)obj.order=state.items[idx].order??obj.order, state.items[idx]={...state.items[idx],...obj};else state.items.push({...obj,createdAt:new Date().toISOString()});closeModal('itemModal');saveState();toast('일정을 저장했습니다.');
+  });
+
+  $('#memoForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const id=$('#memoId').value||uid('memo');
+    const date=$('#memoDate').value;
+    const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===date&&i.id!==id);
+    const now=new Date().toISOString();
+    const obj={id,tripId:currentTripId,entryType:'memo',date,time:$('#memoTime').value,customName:$('#memoTitle').value.trim(),googleName:'',category:'메모',address:'',lat:null,lng:null,placeId:'',notes:$('#memoBody').value.trim(),order:sameDate.length,updatedAt:now};
+    const idx=state.items.findIndex(i=>i.id===id);
+    if(idx>=0){obj.order=state.items[idx].order??obj.order;state.items[idx]={...state.items[idx],...obj};}
+    else state.items.push({...obj,createdAt:now});
+    closeModal('memoModal');saveState();toast('메모를 저장했습니다.');
   });
 
   $('#expenseForm').addEventListener('submit',e=>{
@@ -931,13 +1004,13 @@
   function csvCell(v){return `"${String(v??'').replaceAll('"','""')}"`;}
   function exportExpensesCsv(){const t=trip();if(!t)return toast('여행을 먼저 만들어주세요.');const rows=[['날짜','분류','내용','통화','금액','연결 일정']];tripExpenses().forEach(e=>rows.push([e.date,e.category,e.description,e.currency,e.amount,state.items.find(i=>i.id===e.itemId)?.customName||'']));downloadText(`${t.name.replace(/[\\/:*?"<>|]/g,'_')}_경비.csv`,'\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');toast('경비 CSV를 저장했습니다.');}
   function icsEscape(v){return String(v??'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}function icsDate(d){return (d||'').replaceAll('-','');}
-  function exportCalendarIcs(){const t=trip();if(!t)return toast('여행을 먼저 만들어주세요.');const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ddoon Couple Travel Archive//KO','CALSCALE:GREGORIAN','METHOD:PUBLISH',`X-WR-CALNAME:${icsEscape(t.name)}`];tripItems().forEach(i=>{lines.push('BEGIN:VEVENT',`UID:${i.id}@ddoon-travel.local`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}`);if(i.time)lines.push(`DTSTART:${icsDate(i.date)}T${i.time.replace(':','')}00`);else lines.push(`DTSTART;VALUE=DATE:${icsDate(i.date)}`);lines.push(`SUMMARY:${icsEscape(i.customName)}`);if(i.address||i.googleName)lines.push(`LOCATION:${icsEscape(i.address||i.googleName)}`);const desc=[i.notes,googleMapsUrl(i)].filter(Boolean).join('\n');if(desc)lines.push(`DESCRIPTION:${icsEscape(desc)}`);lines.push('END:VEVENT');});lines.push('END:VCALENDAR');downloadText(`${t.name.replace(/[\\/:*?"<>|]/g,'_')}.ics`,lines.join('\r\n'),'text/calendar;charset=utf-8');toast('캘린더 파일을 저장했습니다.');}
+  function exportCalendarIcs(){const t=trip();if(!t)return toast('여행을 먼저 만들어주세요.');const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ddoon Couple Travel Archive//KO','CALSCALE:GREGORIAN','METHOD:PUBLISH',`X-WR-CALNAME:${icsEscape(t.name)}`];tripItems().forEach(i=>{lines.push('BEGIN:VEVENT',`UID:${i.id}@ddoon-travel.local`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}`);if(i.time)lines.push(`DTSTART:${icsDate(i.date)}T${i.time.replace(':','')}00`);else lines.push(`DTSTART;VALUE=DATE:${icsDate(i.date)}`);lines.push(`SUMMARY:${icsEscape(i.customName)}`);if(i.address||i.googleName)lines.push(`LOCATION:${icsEscape(i.address||i.googleName)}`);const desc=isMemoItem(i)?[i.notes].filter(Boolean).join('\n'):[i.notes,googleMapsUrl(i)].filter(Boolean).join('\n');if(desc)lines.push(`DESCRIPTION:${icsEscape(desc)}`);lines.push('END:VEVENT');});lines.push('END:VCALENDAR');downloadText(`${t.name.replace(/[\\/:*?"<>|]/g,'_')}.ics`,lines.join('\r\n'),'text/calendar;charset=utf-8');toast('캘린더 파일을 저장했습니다.');}
   async function duplicateCurrentTrip(){const t=trip();if(!t)return toast('여행을 먼저 만들어주세요.');if(!confirm(`"${t.name}"의 일정과 경비를 복제할까요? 사진은 복제하지 않습니다.`))return;const newTripId=uid('trip'),now=new Date().toISOString();state.trips.push({...t,id:newTripId,name:`${t.name} 복사본`,createdAt:now,updatedAt:now});const itemMap=new Map();state.items.filter(i=>i.tripId===t.id).forEach(i=>{const nid=uid('item');itemMap.set(i.id,nid);state.items.push({...i,id:nid,tripId:newTripId,createdAt:now,updatedAt:now});});state.expenses.filter(e=>e.tripId===t.id).forEach(e=>state.expenses.push({...e,id:uid('exp'),tripId:newTripId,itemId:itemMap.get(e.itemId)||'',createdAt:now,updatedAt:now}));currentTripId=newTripId;saveState();closeModal('toolsModal');openTripView(newTripId);toast('여행을 복제했습니다.');}
   async function deleteCurrentTrip(){const t=trip();if(!t)return;if(!confirm(`"${t.name}" 여행 전체를 삭제할까요?\n일정·사진·경비가 모두 삭제되며 되돌릴 수 없습니다.`))return;await photoDB.deleteByTrip(t.id);state.items=state.items.filter(i=>i.tripId!==t.id);state.expenses=state.expenses.filter(e=>e.tripId!==t.id);state.trips=state.trips.filter(x=>x.id!==t.id);currentTripId=state.trips[0]?.id||null;saveState();closeModal('toolsModal');showHome();toast('여행을 삭제했습니다.');}
 
   function openExpense(){const t=trip();if(!t)return toast('여행을 먼저 만들어주세요.');$('#expenseDate').value=scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate;openModal('expenseModal')}
   function openPhotoForItem(itemId){
-    const item=state.items.find(i=>i.id===itemId&&i.tripId===currentTripId); if(!item)return toast('일정을 찾지 못했습니다.');
+    const item=state.items.find(i=>i.id===itemId&&i.tripId===currentTripId&&!isMemoItem(i)); if(!item)return toast('일정을 찾지 못했습니다.');
     $('#photoItemId').value=item.id; $('#photoCaption').value=''; $('#photoFiles').value='';
     $('#photoTargetInfo').innerHTML=`<strong>${escapeHtml(item.customName)}</strong> · DAY ${dayNo(item.date)} · ${escapeHtml(fmtDate(item.date))}`;
     openModal('photoModal');
@@ -960,7 +1033,7 @@
   $('#galleryNext').onclick=()=>{if(!galleryPhotos.length)return;galleryIndex=(galleryIndex+1)%galleryPhotos.length;renderGalleryPhoto()};
   $('#galleryDelete').onclick=async()=>{const p=galleryPhotos[galleryIndex];if(!p||!confirm('현재 사진을 삭제할까요?'))return;await photoDB.delete(p.id);galleryPhotos.splice(galleryIndex,1);if(galleryIndex>=galleryPhotos.length)galleryIndex=Math.max(0,galleryPhotos.length-1);await renderTimeline();await renderPhotos();await renderHero();if(galleryPhotos.length)renderGalleryPhoto();else closeModal('galleryModal')};
 
-  $('#newTripBtn').onclick=()=>openTripEdit(); $('#homeNewTripBtn').onclick=()=>openTripEdit(); $('#homeBtn').onclick=showHome; $('#homeBtn2').onclick=showHome; $('#editTripBtn').onclick=()=>trip()?openTripEdit(currentTripId):toast('여행을 먼저 만들어주세요.'); $('#addItemBtn').onclick=()=>openItemEdit(); $('#addExpenseBtn').onclick=openExpense;
+  $('#newTripBtn').onclick=()=>openTripEdit(); $('#homeNewTripBtn').onclick=()=>openTripEdit(); $('#homeBtn').onclick=showHome; $('#homeBtn2').onclick=showHome; $('#editTripBtn').onclick=()=>trip()?openTripEdit(currentTripId):toast('여행을 먼저 만들어주세요.'); $('#addMemoBtn').onclick=()=>openMemoEdit(); $('#addItemBtn').onclick=()=>openItemEdit(); $('#addExpenseBtn').onclick=openExpense;
   $('#calendarExportBtn').onclick=exportCalendarIcs;$('#expenseCsvBtn').onclick=exportExpensesCsv;$('#toolsBtn').onclick=()=>openModal('toolsModal');$('#homeAccountBtn').onclick=openAccount;$('#detailAccountBtn').onclick=openAccount;$('#authGateLoginBtn').onclick=()=>openModal('authModal');$('#homeSearch').oninput=renderHome;
   $('#toolBackupBtn').onclick=backup;$('#toolRestoreBtn').onclick=()=>$('#restoreInput').click();$('#toolCalendarBtn').onclick=exportCalendarIcs;$('#toolExpenseCsvBtn').onclick=exportExpensesCsv;$('#duplicateTripBtn').onclick=duplicateCurrentTrip;$('#deleteTripBtn').onclick=deleteCurrentTrip;$('#restoreInput').onchange=e=>e.target.files[0]&&restore(e.target.files[0]);
   $('#authForm').addEventListener('submit',async e=>{e.preventDefault();if(!supabaseConfigured())return toast('Supabase URL과 publishable key를 먼저 연결해주세요.');const btn=e.submitter;btn.disabled=true;try{const {error}=await cloud.client.auth.signInWithPassword({email:$('#authEmail').value.trim(),password:$('#authPassword').value});if(error)throw error;closeModal('authModal');}catch(err){toast(err.message||'로그인에 실패했습니다.');}finally{btn.disabled=false;}});
@@ -983,7 +1056,7 @@
       map=new Map($('#map'),{center:{lat:36.2,lng:138.2},zoom:5,mapId:CONFIG.GOOGLE_MAP_ID,streetViewControl:false,mapTypeControl:false,fullscreenControl:false}); $('#mapPlaceholder').classList.add('hidden');
       const {PlaceAutocompleteElement}=await google.maps.importLibrary('places');
       placeAutocomplete=new PlaceAutocompleteElement({}); $('#placeAutocompleteHost').replaceChildren(placeAutocomplete); $('#placeSearchHelp').textContent='Google에서 장소를 선택한 뒤, 아래 “내가 표시할 장소명”은 원하는 한국어 이름으로 자유롭게 바꿀 수 있습니다.';
-      placeAutocomplete.addEventListener('gmp-select',async ({placePrediction})=>{const place=placePrediction.toPlace();await place.fetchFields({fields:['displayName','formattedAddress','location','id']});selectedPlaceId=place.id||'';$('#itemGoogleName').value=place.displayName||'';if(!$('#itemCustomName').value)$('#itemCustomName').value=place.displayName||'';$('#itemAddress').value=place.formattedAddress||'';if(place.location){$('#itemLat').value=place.location.lat();$('#itemLng').value=place.location.lng();map.panTo(place.location);map.setZoom(16);}});
+      placeAutocomplete.addEventListener('gmp-select',async ({placePrediction})=>{const place=placePrediction.toPlace();await place.fetchFields({fields:['displayName','formattedAddress','location','id']});selectedPlaceId=place.id||'';$('#itemGoogleName').value=place.displayName||'';if(!$('#itemCustomName').value)$('#itemCustomName').value=place.displayName||'';$('#itemAddress').value=place.formattedAddress||'';if(place.location){$('#itemLat').value=place.location.lat();$('#itemLng').value=place.location.lng();map.panTo(place.location);map.setZoom(13);}});
       renderMapMarkers();
     }catch(e){console.error('Google Maps init failed',e);toast('Google Maps를 불러오지 못했습니다.');}
   };
