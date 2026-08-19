@@ -166,9 +166,9 @@
     .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
     .place-search-wrap{padding:12px;border:1px dashed var(--line);border-radius:12px;background:var(--panel-2)}
     .place-search-wrap small{display:block;color:var(--muted);line-height:1.5;margin-bottom:8px}
-    #placeAutocompleteHost{width:100%;max-width:100%;min-width:0;min-height:44px;overflow:hidden}
-    .place-search-wrap{min-width:0;max-width:100%;overflow:hidden}
-    gmp-place-autocomplete{display:block;width:100%!important;max-width:100%!important;min-width:0!important;--gmp-mat-color-surface:#fff}
+    #placeAutocompleteHost{width:100%;max-width:100%;min-width:0;min-height:44px;overflow:visible;position:relative;z-index:20}
+    .place-search-wrap{min-width:0;max-width:100%;overflow:visible;position:relative;z-index:20}
+    gmp-place-autocomplete{display:block;width:100%!important;max-width:100%!important;min-width:0!important;position:relative;z-index:21;--gmp-mat-color-surface:#fff}
     .notice{padding:10px 12px;border-radius:11px;background:#fff8e7;border:1px solid #ead8aa;color:#705f37;font-size:12px;line-height:1.5}
     .toast{position:fixed;z-index:200;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1f221f;color:#fff;padding:11px 14px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 12px 30px rgba(0,0,0,.22);font-size:13px}
     .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -195,7 +195,7 @@
       .trip-hero{padding:18px;border-radius:20px}.trip-title-row{display:block}.trip-select{margin:8px 0 0;width:100%;max-width:none}.trip-title{font-size:30px}.summary-row{grid-template-columns:1fr 1fr}.summary-row .summary:last-child{grid-column:1/-1}
       .section-toolbar{flex-wrap:wrap;gap:8px}.section-toolbar .spacer{display:none}.section-toolbar h2{flex:1 0 100%}.section-toolbar .btn{margin-left:0}.item-card{grid-template-columns:38px minmax(0,1fr)}.item-actions{grid-column:2;justify-content:flex-start;max-width:none}.item-photo-thumb{width:112px}
       .photo-grid{grid-template-columns:repeat(2,1fr)}.tool-grid{grid-template-columns:1fr}.auth-card{padding:22px}.expense-row{grid-template-columns:78px minmax(0,1fr) auto}.expense-row .btn{grid-column:2/-1;justify-self:start}.expense-amount{font-size:13px}.totals{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
-      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px}#placeAutocompleteHost,gmp-place-autocomplete{width:100%!important;max-width:100%!important;min-width:0!important}
+      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px;overflow:visible}#placeAutocompleteHost,gmp-place-autocomplete{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible}
     }
   </style>
 </head>
@@ -347,8 +347,8 @@
         <div class="field"><label>Google 장소명</label><input id="itemGoogleName" placeholder="예: Birmingham Castle" /></div>
         <div class="field"><label>종류</label><select id="itemCategory"><option>관광</option><option>식사</option><option>숙박</option><option>교통</option><option>쇼핑</option><option>카페</option><option>기타</option></select></div>
         <div class="field full"><label>주소</label><input id="itemAddress" placeholder="Google에서 받아오거나 직접 입력" /></div>
-        <div class="field"><label>위도</label><input id="itemLat" type="number" step="any" placeholder="35.0116" /></div>
-        <div class="field"><label>경도</label><input id="itemLng" type="number" step="any" placeholder="135.7681" /></div>
+        <input id="itemLat" type="hidden" />
+        <input id="itemLng" type="hidden" />
         <div class="field full"><label>메모</label><textarea id="itemNotes" placeholder="예약시간, 교통편, 입장 방법 등을 기록하세요."></textarea></div>
       </div>
       <div class="modal-actions"><button type="button" class="btn" data-close="itemModal">취소</button><button class="btn primary" type="submit">저장</button></div>
@@ -1055,7 +1055,7 @@
       const {Map}=await google.maps.importLibrary('maps');
       map=new Map($('#map'),{center:{lat:36.2,lng:138.2},zoom:5,mapId:CONFIG.GOOGLE_MAP_ID,streetViewControl:false,mapTypeControl:false,fullscreenControl:false}); $('#mapPlaceholder').classList.add('hidden');
       const {PlaceAutocompleteElement}=await google.maps.importLibrary('places');
-      placeAutocomplete=new PlaceAutocompleteElement({}); $('#placeAutocompleteHost').replaceChildren(placeAutocomplete); $('#placeSearchHelp').textContent='Google에서 장소를 선택한 뒤, 아래 “내가 표시할 장소명”은 원하는 한국어 이름으로 자유롭게 바꿀 수 있습니다.';
+      placeAutocomplete=new PlaceAutocompleteElement({}); $('#placeAutocompleteHost').replaceChildren(placeAutocomplete); $('#placeSearchHelp').textContent='Google에서 장소를 선택하면 지도 위치가 자동으로 저장됩니다. 아래 “내가 표시할 장소명”은 원하는 한국어 이름으로 자유롭게 바꿀 수 있습니다.';
       placeAutocomplete.addEventListener('gmp-select',async ({placePrediction})=>{const place=placePrediction.toPlace();await place.fetchFields({fields:['displayName','formattedAddress','location','id']});selectedPlaceId=place.id||'';$('#itemGoogleName').value=place.displayName||'';if(!$('#itemCustomName').value)$('#itemCustomName').value=place.displayName||'';$('#itemAddress').value=place.formattedAddress||'';if(place.location){$('#itemLat').value=place.location.lat();$('#itemLng').value=place.location.lng();map.panTo(place.location);map.setZoom(13);}});
       renderMapMarkers();
     }catch(e){console.error('Google Maps init failed',e);toast('Google Maps를 불러오지 못했습니다.');}
