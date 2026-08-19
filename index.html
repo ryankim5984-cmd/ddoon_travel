@@ -105,7 +105,6 @@
     .memo-card .drag-handle{background:#2F473B;color:#fff}
     .memo-card .item-time{color:#2F473B}
     .memo-card .item-title{color:#263b31}
-    .memo-kicker{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;background:#e2e8e3;color:#2F473B;font-size:10px;font-weight:900;margin-bottom:5px}
     .drag-handle{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--panel-2);font-weight:900;color:var(--muted);user-select:none}
     .item-time{font-size:12px;color:var(--accent);font-weight:900;margin-bottom:3px}
     .item-title{font-size:18px;font-weight:900;margin:0 0 4px;line-height:1.25}
@@ -365,7 +364,7 @@
         <div class="field"><label>날짜</label><input id="memoDate" type="date" required /></div>
         <div class="field"><label>시간</label><input id="memoTime" type="time" /></div>
         <div class="field full"><label>제목 *</label><input id="memoTitle" required placeholder="예: 여권과 입장권 챙기기" /></div>
-        <div class="field full"><label>메모 *</label><textarea id="memoBody" required placeholder="일정 사이에 기억해둘 준비물, 약속, 주의사항 등을 적어두세요."></textarea></div>
+        <div class="field full"><label>메모</label><textarea id="memoBody" placeholder="일정 사이에 기억해둘 준비물, 약속, 주의사항 등을 적어두세요."></textarea></div>
       </div>
       <div class="modal-actions"><button type="button" class="btn" data-close="memoModal">취소</button><button class="btn primary" type="submit">저장</button></div>
     </form>
@@ -747,7 +746,6 @@
       return `<article class="item-card memo-card${selectedItemId===i.id?' selected':''}" draggable="true" data-item-id="${i.id}" data-date="${i.date}" data-entry-type="memo">
         <div class="drag-handle" title="드래그해서 순서 변경">✎</div>
         <div>
-          <div class="memo-kicker">MEMO</div>
           <div class="item-time">${escapeHtml(i.time||'시간 미정')}</div>
           <h3 class="item-title">${escapeHtml(i.customName||'메모')}</h3>
           ${i.notes?`<div class="item-notes">${escapeHtml(i.notes)}</div>`:''}
