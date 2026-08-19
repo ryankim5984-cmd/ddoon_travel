@@ -185,9 +185,20 @@
     .account-panel{display:grid;gap:12px}.account-box{border:1px solid var(--line);background:var(--panel-2);border-radius:14px;padding:13px}.account-box small{display:block;color:var(--muted);font-size:11px;font-weight:800;margin-bottom:5px}.account-box strong{word-break:break-all}.inline-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.inline-row input{flex:1;min-width:180px}.cloud-note{font-size:11px;line-height:1.6;color:var(--muted);margin-top:6px}.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.tool-card{border:1px solid var(--line);background:var(--panel-2);border-radius:14px;padding:14px;text-align:left}.tool-card strong{display:block;margin-bottom:5px}.tool-card span{font-size:11px;color:var(--muted);line-height:1.55}.tool-card.danger{background:#fff5f2;border-color:#e5beb5}
     .home-search{width:min(420px,100%);margin-top:18px;border:1px solid var(--line);background:var(--panel);padding:11px 13px;border-radius:12px;outline:none}.home-search:focus{border-color:var(--accent-2);box-shadow:0 0 0 3px rgba(47,71,59,.10)}
 
+    .quick-add-bar{
+      position:fixed;z-index:60;left:29%;bottom:18px;transform:translateX(-50%);
+      display:flex;align-items:center;gap:8px;padding:8px;
+      background:rgba(251,250,246,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border:1px solid rgba(180,170,154,.72);border-radius:18px;
+      box-shadow:0 12px 34px rgba(35,31,24,.16)
+    }
+    .quick-add-bar .btn{min-width:110px;justify-content:center}
+    .quick-add-bar .quick-item{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+
     @media(max-width:1050px){
       .trip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .app{grid-template-columns:1fr}.content{padding:18px 16px 76px;padding-top:36vh}.map-shell{position:fixed;z-index:20;top:0;left:0;right:0;height:32vh;border-left:0;border-bottom:1px solid rgba(0,0,0,.12)}
+      .app{grid-template-columns:1fr}.content{padding:18px 16px 108px;padding-top:36vh}.map-shell{position:fixed;z-index:20;top:0;left:0;right:0;height:32vh;border-left:0;border-bottom:1px solid rgba(0,0,0,.12)}.quick-add-bar{left:50%}
       header{margin-top:10px}.trip-title{font-size:34px}.photo-grid{grid-template-columns:repeat(3,1fr)}
     }
     @media(max-width:680px){
@@ -196,7 +207,7 @@
       .trip-hero{padding:18px;border-radius:20px}.trip-title-row{display:block}.trip-select{margin:8px 0 0;width:100%;max-width:none}.trip-title{font-size:30px}.summary-row{grid-template-columns:1fr 1fr}.summary-row .summary:last-child{grid-column:1/-1}
       .section-toolbar{flex-wrap:wrap;gap:8px}.section-toolbar .spacer{display:none}.section-toolbar h2{flex:1 0 100%}.section-toolbar .btn{margin-left:0}.item-card{grid-template-columns:38px minmax(0,1fr)}.item-actions{grid-column:2;justify-self:end;justify-items:end;max-width:none;width:auto}.item-action-row{justify-content:flex-end}.item-photo-thumb{width:112px}
       .photo-grid{grid-template-columns:repeat(2,1fr)}.tool-grid{grid-template-columns:1fr}.auth-card{padding:22px}.expense-row{grid-template-columns:78px minmax(0,1fr) auto}.expense-row .btn{grid-column:2/-1;justify-self:start}.expense-amount{font-size:13px}.totals{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
-      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px;overflow:visible}#placeAutocompleteHost,gmp-place-autocomplete{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible}
+      .modal-backdrop{padding:8px}.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:90vh;max-height:90dvh;padding:18px 14px}.modal h3{font-size:26px}.field input,.field select,.field textarea{font-size:16px}.place-search-wrap{padding:10px;overflow:visible}#placeAutocompleteHost,gmp-place-autocomplete{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible}.quick-add-bar{width:calc(100vw - 24px);max-width:420px;bottom:calc(10px + env(safe-area-inset-bottom));padding:7px}.quick-add-bar .btn{flex:1;min-width:0}
     }
   </style>
 </head>
@@ -297,6 +308,11 @@
       <div class="expense-list" id="expenseList"></div>
     </section>
   </main>
+
+  <div class="quick-add-bar" id="quickAddBar" aria-label="빠른 일정 추가">
+    <button class="btn" id="quickAddMemoBtn" type="button">+ 메모</button>
+    <button class="btn quick-item" id="quickAddItemBtn" type="button">+ 일정</button>
+  </div>
 
   <aside class="map-shell">
     <div id="map"></div>
@@ -910,6 +926,7 @@
   function renderTabs(){
     $$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===activeTab));
     $('#scheduleTab').classList.toggle('hidden',activeTab!=='schedule'); $('#photosTab').classList.toggle('hidden',activeTab!=='photos'); $('#expensesTab').classList.toggle('hidden',activeTab!=='expenses');
+    $('#quickAddBar')?.classList.toggle('hidden',activeTab!=='schedule');
     if(activeTab==='photos')renderPhotos();
   }
 
@@ -1037,7 +1054,7 @@
   $('#galleryNext').onclick=()=>{if(!galleryPhotos.length)return;galleryIndex=(galleryIndex+1)%galleryPhotos.length;renderGalleryPhoto()};
   $('#galleryDelete').onclick=async()=>{const p=galleryPhotos[galleryIndex];if(!p||!confirm('현재 사진을 삭제할까요?'))return;await photoDB.delete(p.id);galleryPhotos.splice(galleryIndex,1);if(galleryIndex>=galleryPhotos.length)galleryIndex=Math.max(0,galleryPhotos.length-1);await renderTimeline();await renderPhotos();await renderHero();if(galleryPhotos.length)renderGalleryPhoto();else closeModal('galleryModal')};
 
-  $('#newTripBtn').onclick=()=>openTripEdit(); $('#homeNewTripBtn').onclick=()=>openTripEdit(); $('#homeBtn').onclick=showHome; $('#homeBtn2').onclick=showHome; $('#editTripBtn').onclick=()=>trip()?openTripEdit(currentTripId):toast('여행을 먼저 만들어주세요.'); $('#addMemoBtn').onclick=()=>openMemoEdit(); $('#addItemBtn').onclick=()=>openItemEdit(); $('#addExpenseBtn').onclick=openExpense;
+  $('#newTripBtn').onclick=()=>openTripEdit(); $('#homeNewTripBtn').onclick=()=>openTripEdit(); $('#homeBtn').onclick=showHome; $('#homeBtn2').onclick=showHome; $('#editTripBtn').onclick=()=>trip()?openTripEdit(currentTripId):toast('여행을 먼저 만들어주세요.'); $('#addMemoBtn').onclick=()=>openMemoEdit(); $('#addItemBtn').onclick=()=>openItemEdit(); $('#quickAddMemoBtn').onclick=()=>openMemoEdit(); $('#quickAddItemBtn').onclick=()=>openItemEdit(); $('#addExpenseBtn').onclick=openExpense;
   $('#calendarExportBtn').onclick=exportCalendarIcs;$('#expenseCsvBtn').onclick=exportExpensesCsv;$('#toolsBtn').onclick=()=>openModal('toolsModal');$('#homeAccountBtn').onclick=openAccount;$('#detailAccountBtn').onclick=openAccount;$('#authGateLoginBtn').onclick=()=>openModal('authModal');$('#homeSearch').oninput=renderHome;
   $('#toolBackupBtn').onclick=backup;$('#toolRestoreBtn').onclick=()=>$('#restoreInput').click();$('#toolCalendarBtn').onclick=exportCalendarIcs;$('#toolExpenseCsvBtn').onclick=exportExpensesCsv;$('#duplicateTripBtn').onclick=duplicateCurrentTrip;$('#deleteTripBtn').onclick=deleteCurrentTrip;$('#restoreInput').onchange=e=>e.target.files[0]&&restore(e.target.files[0]);
   $('#authForm').addEventListener('submit',async e=>{e.preventDefault();if(!supabaseConfigured())return toast('Supabase URL과 publishable key를 먼저 연결해주세요.');const btn=e.submitter;btn.disabled=true;try{const {error}=await cloud.client.auth.signInWithPassword({email:$('#authEmail').value.trim(),password:$('#authPassword').value});if(error)throw error;closeModal('authModal');}catch(err){toast(err.message||'로그인에 실패했습니다.');}finally{btn.disabled=false;}});
