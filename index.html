@@ -108,7 +108,6 @@
     .drag-handle{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--panel-2);font-weight:900;color:var(--muted);user-select:none}
     .item-time{font-size:12px;color:var(--accent);font-weight:900;margin-bottom:3px}
     .item-title{font-size:18px;font-weight:900;margin:0 0 4px;line-height:1.25}
-    .item-sub{font-size:12px;color:var(--muted);line-height:1.5}
     .item-notes{font-size:13px;margin-top:9px;line-height:1.55;white-space:pre-line}
     .item-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
     .tag{background:var(--panel-2);color:var(--muted);padding:5px 7px;border-radius:8px;font-size:11px;font-weight:800}
@@ -378,7 +377,15 @@
         </div>
         <div class="field full"><label>내가 표시할 장소명 *</label><input id="itemCustomName" required placeholder="예: 버밍엄 성" /></div>
         <div class="field"><label>Google 장소명</label><input id="itemGoogleName" placeholder="예: Birmingham Castle" /></div>
-        <div class="field"><label>종류</label><select id="itemCategory"><option>관광</option><option>식사</option><option>숙박</option><option>교통</option><option>쇼핑</option><option>카페</option><option>기타</option></select></div>
+        <div class="field"><label>종류 *</label><select id="itemCategory" required>
+          <option value="">선택하세요</option>
+          <option value="관광">관광</option>
+          <option value="식사">식사</option>
+          <option value="쇼핑">쇼핑</option>
+          <option value="숙박">숙박</option>
+          <option value="교통">교통</option>
+          <option value="기타">기타</option>
+        </select></div>
         <div class="field full"><label>주소</label><input id="itemAddress" placeholder="Google에서 받아오거나 직접 입력" /></div>
         <input id="itemLat" type="hidden" />
         <input id="itemLng" type="hidden" />
@@ -892,7 +899,6 @@
       <div>
         <div class="item-time">${escapeHtml(i.time||'시간 미정')} · ${escapeHtml(i.category||'기타')}</div>
         <h3 class="item-title">${escapeHtml(i.customName)}</h3>
-        ${i.googleName&&i.googleName!==i.customName?`<div class="item-sub">${escapeHtml(i.googleName)}</div>`:''}
         ${i.notes?`<div class="item-notes">${escapeHtml(i.notes)}</div>`:''}
         ${costBlock}
         ${photoBlock}
@@ -1016,9 +1022,8 @@
       const dayIndex=dayItems.findIndex(x=>x.id===i.id);
       const glyph=mapDayFilter==='all'?String(idx+1):String(dayIndex+1);
       const pin=new PinElement({glyph,background:isActive?'#2F473B':'#A8B4AE',borderColor:isActive?'#1D3028':'#7F9188',glyphColor:'#FFFFFF',scale:isActive?1.05:.90});
-      const marker=new AdvancedMarkerElement({map,position:{lat:Number(i.lat),lng:Number(i.lng)},title:i.customName,content:pin.element,gmpDraggable:true,zIndex:isActive?10:1});
+      const marker=new AdvancedMarkerElement({map,position:{lat:Number(i.lat),lng:Number(i.lng)},title:i.customName,content:pin.element,gmpDraggable:false,zIndex:isActive?10:1});
       marker.addListener('click',()=>{selectItem(i.id); const el=document.querySelector(`[data-item-id="${CSS.escape(i.id)}"]`); if(el)el.scrollIntoView({behavior:'smooth',block:'center'})});
-      marker.addListener('dragend',()=>{const pos=marker.position; const lat=typeof pos.lat==='function'?pos.lat():pos.lat; const lng=typeof pos.lng==='function'?pos.lng():pos.lng; const it=state.items.find(x=>x.id===i.id); if(it){it.lat=Number(lat);it.lng=Number(lng);saveState();toast('지도 위치를 수정했습니다.')}});
       markers.push({itemId:i.id,item:i,pin,marker});
     });
     const routeItems=mapDayFilter==='all'?items:activeItems;
@@ -1043,7 +1048,10 @@
   }
   function openItemEdit(id=null){
     const i=id?state.items.find(x=>x.id===id):null; const t=trip(); if(!t)return toast('여행을 먼저 만들어주세요.');
-    $('#itemModalTitle').textContent=i?'일정 수정':'일정 추가'; $('#itemId').value=i?.id||''; $('#itemDate').min=t.startDate;$('#itemDate').max=t.endDate;$('#itemDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);$('#itemTime').value=normalizeTime24(i?.time||'')??'';$('#itemCustomName').value=i?.customName||'';$('#itemGoogleName').value=i?.googleName||'';$('#itemCategory').value=i?.category||'관광';$('#itemAddress').value=i?.address||'';$('#itemLat').value=i?.lat??'';$('#itemLng').value=i?.lng??'';$('#itemNotes').value=i?.notes||'';selectedPlaceId=i?.placeId||'';resetPlaceSearchUI();openModal('itemModal');
+    $('#itemModalTitle').textContent=i?'일정 수정':'일정 추가'; $('#itemId').value=i?.id||''; $('#itemDate').min=t.startDate;$('#itemDate').max=t.endDate;$('#itemDate').value=i?.date||(scheduleDayFilter!=='all'?scheduleDayFilter:t.startDate);$('#itemTime').value=normalizeTime24(i?.time||'')??'';$('#itemCustomName').value=i?.customName||'';$('#itemGoogleName').value=i?.googleName||'';{
+      const allowedCategories=new Set(['관광','식사','쇼핑','숙박','교통','기타']);
+      $('#itemCategory').value=i&&allowedCategories.has(i.category)?i.category:'';
+    }$('#itemAddress').value=i?.address||'';$('#itemLat').value=i?.lat??'';$('#itemLng').value=i?.lng??'';$('#itemNotes').value=i?.notes||'';selectedPlaceId=i?.placeId||'';resetPlaceSearchUI();openModal('itemModal');
   }
   function openMemoEdit(id=null){
     const i=id?state.items.find(x=>x.id===id&&isMemoItem(x)):null; const t=trip(); if(!t)return toast('여행을 먼저 만들어주세요.');
@@ -1073,9 +1081,11 @@
   $('#itemForm').addEventListener('submit',e=>{
     e.preventDefault();
     const time=readTime24('#itemTime'); if(time===null)return;
+    const category=$('#itemCategory').value;
+    if(!category){toast('종류를 선택해주세요.');$('#itemCategory').focus();return;}
     const id=$('#itemId').value||uid('item');
     const sameDate=state.items.filter(i=>i.tripId===currentTripId&&i.date===$('#itemDate').value&&i.id!==id);
-    const obj={id,tripId:currentTripId,entryType:'schedule',date:$('#itemDate').value,time,customName:$('#itemCustomName').value.trim(),googleName:$('#itemGoogleName').value.trim(),category:$('#itemCategory').value,address:$('#itemAddress').value.trim(),lat:$('#itemLat').value===''?null:Number($('#itemLat').value),lng:$('#itemLng').value===''?null:Number($('#itemLng').value),placeId:selectedPlaceId||'',notes:$('#itemNotes').value.trim(),order:sameDate.length,updatedAt:new Date().toISOString()};
+    const obj={id,tripId:currentTripId,entryType:'schedule',date:$('#itemDate').value,time,customName:$('#itemCustomName').value.trim(),googleName:$('#itemGoogleName').value.trim(),category,address:$('#itemAddress').value.trim(),lat:$('#itemLat').value===''?null:Number($('#itemLat').value),lng:$('#itemLng').value===''?null:Number($('#itemLng').value),placeId:selectedPlaceId||'',notes:$('#itemNotes').value.trim(),order:sameDate.length,updatedAt:new Date().toISOString()};
     const idx=state.items.findIndex(i=>i.id===id);if(idx>=0)obj.order=state.items[idx].order??obj.order, state.items[idx]={...state.items[idx],...obj};else state.items.push({...obj,createdAt:new Date().toISOString()});closeModal('itemModal');saveState();toast('일정을 저장했습니다.');
   });
 
