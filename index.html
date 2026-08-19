@@ -482,7 +482,7 @@
   let galleryObjectUrl = '';
   const CLOUD_DIRTY_KEY='coupleTravelArchive.cloudDirty.v1';
   const ACTIVE_SPACE_KEY='coupleTravelArchive.activeSpace.v1';
-  const cloud={client:null,user:null,spaceId:null,space:null,ready:false,syncing:false,syncTimer:null,channel:null,photoChannel:null,lastPushed:'',lastSyncAt:null};
+  const cloud={client:null,user:null,spaceId:null,space:null,ready:false,syncing:false,syncTimer:null,channel:null,photoChannel:null,lastPushed:'',lastSyncAt:null,booting:null};
   const supabaseConfigured=()=>Boolean(CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_PUBLISHABLE_KEY&&window.supabase?.createClient);
   const isCloudReady=()=>Boolean(cloud.client&&cloud.user&&cloud.spaceId&&cloud.ready);
   const isLocalDirty=()=>localStorage.getItem(CLOUD_DIRTY_KEY)==='1';
@@ -512,6 +512,14 @@
   }
   function saveLocalSnapshotOnly(){state.currentTripId=currentTripId;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
   function cloudPayload(){return {version:2,trips:state.trips,items:state.items,expenses:state.expenses};}
+  function stableSerialize(value){
+    const normalize=v=>{
+      if(Array.isArray(v))return v.map(normalize);
+      if(v&&typeof v==='object'){const out={};Object.keys(v).sort().forEach(k=>{out[k]=normalize(v[k])});return out;}
+      return v;
+    };
+    return JSON.stringify(normalize(value));
+  }
   function applyCloudPayload(payload){if(!payload||!Array.isArray(payload.trips)||!Array.isArray(payload.items)||!Array.isArray(payload.expenses))return false;state.version=payload.version||2;state.trips=payload.trips;state.items=payload.items;state.expenses=payload.expenses;if(!state.trips.some(t=>t.id===currentTripId))currentTripId=state.trips[0]?.id||null;saveLocalSnapshotOnly();renderAll();return true;}
   function trip(){ return state.trips.find(t=>t.id===currentTripId) || null; }
   function tripItems(){ return state.items.filter(i=>i.tripId===currentTripId).sort(sortItems); }
@@ -552,14 +560,49 @@
   function showAuthGate(show){if(!supabaseConfigured()){ $('#authGate')?.classList.add('hidden');return;}$('#authGate')?.classList.toggle('hidden',!show);if(show){$('#homeView')?.classList.add('hidden');$('#detailView')?.classList.add('hidden');}else if(currentView==='detail'&&currentTripId){$('#detailView')?.classList.remove('hidden')}else{$('#homeView')?.classList.remove('hidden')}}
   function openAccount(){if(!supabaseConfigured()){ $('#authLocalBanner')?.classList.add('show');openModal('authModal');return;}if(!cloud.user){openModal('authModal');return;}renderAccountUI();openModal('accountModal');}
   async function handleAuthChange(event,session){cloud.user=session?.user||null;if(event==='PASSWORD_RECOVERY'){openModal('authModal');$('#passwordRecoveryBox')?.classList.remove('hidden');}if(cloud.user){showAuthGate(false);await bootCloudForUser();}else{cloud.ready=false;cloud.spaceId=null;cloud.space=null;teardownRealtime();showAuthGate(true);setSyncUI('signedout');renderAccountUI();}}
-  async function initSupabase(){if(!supabaseConfigured()){setSyncUI('local','Supabase 연결 전 로컬 모드입니다.');renderAccountUI();return;}cloud.client=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});cloud.client.auth.onAuthStateChange((event,session)=>{setTimeout(()=>handleAuthChange(event,session).catch(err=>{console.error(err);setSyncUI('error',err.message||String(err));}),0);});const {data:{session}}=await cloud.client.auth.getSession();cloud.user=session?.user||null;showAuthGate(!cloud.user);renderAccountUI();if(cloud.user)await bootCloudForUser();}
-  async function bootCloudForUser(){try{setSyncUI('syncing','공유 공간을 확인하는 중입니다.');const stored=localStorage.getItem(ACTIVE_SPACE_KEY);let membership=null;if(stored){const {data}=await cloud.client.from('travel_space_members').select('space_id,role').eq('user_id',cloud.user.id).eq('space_id',stored).maybeSingle();membership=data||null;}if(!membership){const {data,error}=await cloud.client.from('travel_space_members').select('space_id,role,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:true}).limit(1);if(error)throw error;membership=data?.[0]||null;}if(!membership){const {data,error}=await cloud.client.rpc('create_travel_space',{p_name:'뚠커플의 여행 아카이브'});if(error)throw error;membership={space_id:data};}cloud.spaceId=membership.space_id;localStorage.setItem(ACTIVE_SPACE_KEY,cloud.spaceId);const {data:space,error:spaceErr}=await cloud.client.from('travel_spaces').select('id,name,invite_code,owner_id').eq('id',cloud.spaceId).single();if(spaceErr)throw spaceErr;cloud.space=space;cloud.ready=true;await initialCloudReconcile();await syncPhotosFromCloud();setupRealtime();renderAccountUI();setSyncUI('synced');renderAll();}catch(err){console.error('cloud boot failed',err);cloud.ready=false;setSyncUI('error',err.message||String(err));toast('클라우드 연결에 실패했습니다. Supabase 설정을 확인해주세요.');}}
-  async function initialCloudReconcile(){const {data,error}=await cloud.client.from('travel_archives').select('payload,updated_at').eq('space_id',cloud.spaceId).maybeSingle();if(error)throw error;const remote=data?.payload;const localHas=Boolean(state.trips.length||state.items.length||state.expenses.length);const remoteHas=Boolean(remote&&((remote.trips?.length||0)+(remote.items?.length||0)+(remote.expenses?.length||0)>0));if(!remoteHas){await cloudPushArchive(true);await migrateLocalPhotosToCloud();return;}const localSerialized=JSON.stringify(cloudPayload()),remoteSerialized=JSON.stringify(remote);if(localHas&&localSerialized!==remoteSerialized){const useLocal=confirm('이 브라우저 기록과 클라우드 기록이 서로 다릅니다.\n\n확인: 현재 브라우저 기록을 클라우드에 올리기\n취소: 클라우드 기록을 불러오기');if(useLocal){await cloudPushArchive(true);await migrateLocalPhotosToCloud();return;}}applyCloudPayload(remote);setLocalDirty(false);cloud.lastSyncAt=data.updated_at||new Date().toISOString();cloud.lastPushed=JSON.stringify(cloudPayload());}
+  async function initSupabase(){if(!supabaseConfigured()){setSyncUI('local','Supabase 연결 전 로컬 모드입니다.');renderAccountUI();return;}cloud.client=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});cloud.client.auth.onAuthStateChange((event,session)=>{if(event==='INITIAL_SESSION')return;setTimeout(()=>handleAuthChange(event,session).catch(err=>{console.error(err);setSyncUI('error',err.message||String(err));}),0);});const {data:{session}}=await cloud.client.auth.getSession();cloud.user=session?.user||null;showAuthGate(!cloud.user);renderAccountUI();if(cloud.user)await bootCloudForUser();}
+  async function bootCloudForUser(){
+    if(cloud.booting)return cloud.booting;
+    cloud.booting=(async()=>{try{setSyncUI('syncing','공유 공간을 확인하는 중입니다.');const stored=localStorage.getItem(ACTIVE_SPACE_KEY);let membership=null;if(stored){const {data}=await cloud.client.from('travel_space_members').select('space_id,role').eq('user_id',cloud.user.id).eq('space_id',stored).maybeSingle();membership=data||null;}if(!membership){const {data,error}=await cloud.client.from('travel_space_members').select('space_id,role,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:true}).limit(1);if(error)throw error;membership=data?.[0]||null;}if(!membership){const {data,error}=await cloud.client.rpc('create_travel_space',{p_name:'뚠커플의 여행 아카이브'});if(error)throw error;membership={space_id:data};}cloud.spaceId=membership.space_id;localStorage.setItem(ACTIVE_SPACE_KEY,cloud.spaceId);const {data:space,error:spaceErr}=await cloud.client.from('travel_spaces').select('id,name,invite_code,owner_id').eq('id',cloud.spaceId).single();if(spaceErr)throw spaceErr;cloud.space=space;cloud.ready=true;await initialCloudReconcile();await syncPhotosFromCloud();setupRealtime();renderAccountUI();setSyncUI('synced');renderAll();}catch(err){console.error('cloud boot failed',err);cloud.ready=false;setSyncUI('error',err.message||String(err));toast('클라우드 연결에 실패했습니다. Supabase 설정을 확인해주세요.');}})();
+    try{return await cloud.booting;}finally{cloud.booting=null;}
+  }
+  async function initialCloudReconcile(){
+    const {data,error}=await cloud.client.from('travel_archives').select('payload,updated_at').eq('space_id',cloud.spaceId).maybeSingle();
+    if(error)throw error;
+    const remote=data?.payload;
+    const localHas=Boolean(state.trips.length||state.items.length||state.expenses.length);
+    const remoteHas=Boolean(remote&&((remote.trips?.length||0)+(remote.items?.length||0)+(remote.expenses?.length||0)>0));
+
+    if(!remoteHas){
+      await cloudPushArchive(true);
+      await migrateLocalPhotosToCloud();
+      return;
+    }
+
+    const localSerialized=stableSerialize(cloudPayload());
+    const remoteSerialized=stableSerialize(remote);
+
+    // 정상 로그인/새로고침에서는 클라우드를 기준으로 조용히 동기화합니다.
+    // 이 브라우저에 실제 미동기화 변경이 있을 때만 충돌 여부를 묻습니다.
+    if(isLocalDirty()&&localHas&&localSerialized!==remoteSerialized){
+      const useLocal=confirm('이 브라우저에 아직 클라우드에 저장되지 않은 변경사항이 있습니다.\n\n확인: 현재 브라우저 기록을 클라우드에 올리기\n취소: 클라우드 기록을 불러오기');
+      if(useLocal){
+        await cloudPushArchive(true);
+        await migrateLocalPhotosToCloud();
+        return;
+      }
+    }
+
+    applyCloudPayload(remote);
+    setLocalDirty(false);
+    cloud.lastSyncAt=data.updated_at||new Date().toISOString();
+    cloud.lastPushed=stableSerialize(cloudPayload());
+  }
   function scheduleCloudSync(){if(!isCloudReady())return;clearTimeout(cloud.syncTimer);cloud.syncTimer=setTimeout(()=>cloudPushArchive().catch(err=>{console.error(err);setSyncUI('error',err.message||String(err));}),650);}
-  async function cloudPushArchive(force=false){if(!isCloudReady())return false;const payload=cloudPayload(),serialized=JSON.stringify(payload);if(!force&&serialized===cloud.lastPushed&&!isLocalDirty())return true;cloud.syncing=true;setSyncUI('syncing');const {error}=await cloud.client.from('travel_archives').upsert({space_id:cloud.spaceId,payload,updated_by:cloud.user.id,updated_at:new Date().toISOString()},{onConflict:'space_id'});cloud.syncing=false;if(error){setSyncUI('error',error.message);throw error;}cloud.lastPushed=serialized;cloud.lastSyncAt=new Date().toISOString();setLocalDirty(false);setSyncUI('synced');renderAccountUI();return true;}
-  async function cloudPullArchive(){if(!isCloudReady())return;setSyncUI('syncing');const {data,error}=await cloud.client.from('travel_archives').select('payload,updated_at').eq('space_id',cloud.spaceId).single();if(error){setSyncUI('error',error.message);throw error;}if(data?.payload)applyCloudPayload(data.payload);setLocalDirty(false);cloud.lastPushed=JSON.stringify(cloudPayload());cloud.lastSyncAt=data.updated_at||new Date().toISOString();await syncPhotosFromCloud();setSyncUI('synced');toast('클라우드 기록을 새로 불러왔습니다.');}
+  async function cloudPushArchive(force=false){if(!isCloudReady())return false;const payload=cloudPayload(),serialized=stableSerialize(payload);if(!force&&serialized===cloud.lastPushed&&!isLocalDirty())return true;cloud.syncing=true;setSyncUI('syncing');const {error}=await cloud.client.from('travel_archives').upsert({space_id:cloud.spaceId,payload,updated_by:cloud.user.id,updated_at:new Date().toISOString()},{onConflict:'space_id'});cloud.syncing=false;if(error){setSyncUI('error',error.message);throw error;}cloud.lastPushed=serialized;cloud.lastSyncAt=new Date().toISOString();setLocalDirty(false);setSyncUI('synced');renderAccountUI();return true;}
+  async function cloudPullArchive(){if(!isCloudReady())return;setSyncUI('syncing');const {data,error}=await cloud.client.from('travel_archives').select('payload,updated_at').eq('space_id',cloud.spaceId).single();if(error){setSyncUI('error',error.message);throw error;}if(data?.payload)applyCloudPayload(data.payload);setLocalDirty(false);cloud.lastPushed=stableSerialize(cloudPayload());cloud.lastSyncAt=data.updated_at||new Date().toISOString();await syncPhotosFromCloud();setSyncUI('synced');toast('클라우드 기록을 새로 불러왔습니다.');}
   function teardownRealtime(){if(!cloud.client)return;if(cloud.channel){cloud.client.removeChannel(cloud.channel);cloud.channel=null;}if(cloud.photoChannel){cloud.client.removeChannel(cloud.photoChannel);cloud.photoChannel=null;}}
-  function setupRealtime(){teardownRealtime();if(!isCloudReady())return;cloud.channel=cloud.client.channel(`travel-archive-${cloud.spaceId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'travel_archives',filter:`space_id=eq.${cloud.spaceId}`},payload=>{if(cloud.syncing||isLocalDirty())return;const remote=payload.new?.payload;if(!remote)return;const serialized=JSON.stringify(remote);if(serialized===cloud.lastPushed)return;applyCloudPayload(remote);cloud.lastPushed=serialized;cloud.lastSyncAt=payload.new?.updated_at||new Date().toISOString();setSyncUI('synced','다른 기기의 변경사항을 반영했습니다.');toast('다른 기기의 변경사항을 반영했습니다.');}).subscribe();cloud.photoChannel=cloud.client.channel(`travel-photos-${cloud.spaceId}`).on('postgres_changes',{event:'*',schema:'public',table:'travel_photos',filter:`space_id=eq.${cloud.spaceId}`},()=>syncPhotosFromCloud().then(()=>{renderTimeline();renderPhotos();renderHero();})).subscribe();}
+  function setupRealtime(){teardownRealtime();if(!isCloudReady())return;cloud.channel=cloud.client.channel(`travel-archive-${cloud.spaceId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'travel_archives',filter:`space_id=eq.${cloud.spaceId}`},payload=>{if(cloud.syncing||isLocalDirty())return;const remote=payload.new?.payload;if(!remote)return;const serialized=stableSerialize(remote);if(serialized===cloud.lastPushed)return;applyCloudPayload(remote);cloud.lastPushed=serialized;cloud.lastSyncAt=payload.new?.updated_at||new Date().toISOString();setSyncUI('synced','다른 기기의 변경사항을 반영했습니다.');toast('다른 기기의 변경사항을 반영했습니다.');}).subscribe();cloud.photoChannel=cloud.client.channel(`travel-photos-${cloud.spaceId}`).on('postgres_changes',{event:'*',schema:'public',table:'travel_photos',filter:`space_id=eq.${cloud.spaceId}`},()=>syncPhotosFromCloud().then(()=>{renderTimeline();renderPhotos();renderHero();})).subscribe();}
   async function joinSpaceByCode(code){if(!cloud.user||!code.trim())return;const {data,error}=await cloud.client.rpc('join_travel_space',{p_invite_code:code.trim().toUpperCase()});if(error)throw error;cloud.spaceId=data;localStorage.setItem(ACTIVE_SPACE_KEY,data);cloud.ready=false;teardownRealtime();await bootCloudForUser();closeModal('accountModal');toast('공유 아카이브에 참여했습니다.');}
 
   function renderAll(){
