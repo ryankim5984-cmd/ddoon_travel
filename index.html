@@ -542,6 +542,9 @@
   let map = null;
   let markers = [];
   let routeLine = null;
+  let scrollFocusRaf = 0;
+  let scrollFocusedItemId = '';
+  let scrollMapTrackingArmed = false;
   let PlaceSearchClass = null;
   let placeSearchSeq = 0;
   let selectedPlaceId = '';
@@ -781,7 +784,7 @@
   function openTripView(id){
     if(!state.trips.some(t=>t.id===id)) return;
     currentTripId=id; state.currentTripId=id; saveLocalSnapshotOnly();
-    scheduleDayFilter=photoDayFilter=mapDayFilter='all'; activeTab='schedule'; currentView='detail';
+    scheduleDayFilter=photoDayFilter=mapDayFilter='all'; activeTab='schedule'; currentView='detail'; scrollFocusedItemId=''; scrollMapTrackingArmed=false;
     $('#homeView').classList.add('hidden');
     $('#detailView').classList.remove('hidden');
     renderAll(); renderTabs();
@@ -834,7 +837,7 @@
       if(!dates.length){el.innerHTML='';return}
       el.innerHTML=`<button class="day-pill ${filter==='all'?'active':''}" data-day="all">전체</button>`+dates.map(d=>`<button class="day-pill ${filter===d?'active':''}" data-day="${d}">DAY ${dayNo(d)} · ${escapeHtml(fmtDate(d).split('요일')[0])}</button>`).join('');
       el.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{
-        if(handlerName==='schedule'){scheduleDayFilter=b.dataset.day;mapDayFilter=b.dataset.day;renderDayPills();renderTimeline();renderMapFilters();renderMapMarkers()}
+        if(handlerName==='schedule'){scheduleDayFilter=b.dataset.day;mapDayFilter=b.dataset.day;scrollFocusedItemId='';scrollMapTrackingArmed=false;renderDayPills();renderTimeline();renderMapFilters();renderMapMarkers()}
         else{photoDayFilter=b.dataset.day;renderDayPills();renderPhotos()}
       });
     };
@@ -870,6 +873,7 @@
       }
     }
     bindItemEvents();
+    scrollFocusedItemId='';
   }
 
   function itemCard(i,idx,photos=[]){
@@ -951,8 +955,60 @@
       marker.zIndex=isSelected?100:10;
     });
   }
+
+  function focusMapFromScroll(id){
+    if(!id||id===scrollFocusedItemId||!map)return;
+    const m=markers.find(x=>x.itemId===id);
+    if(!m)return;
+    scrollFocusedItemId=id;
+    selectedItemId=id;
+    $$('.item-card').forEach(c=>c.classList.toggle('selected',c.dataset.itemId===selectedItemId));
+    applyMarkerStyles();
+    // 사용자가 일정 목록을 읽기 시작하면 해당 장소를 Zoom 13으로 따라갑니다.
+    map.panTo(m.marker.position);
+    map.setZoom(13);
+  }
+
+  function updateMapFocusFromScroll(){
+    scrollFocusRaf=0;
+    if(!scrollMapTrackingArmed)return;
+    if(currentView!=='detail'||activeTab!=='schedule'||!map||!markers.length)return;
+    const cards=[...document.querySelectorAll('.item-card[data-entry-type="schedule"]')]
+      .filter(card=>markers.some(m=>m.itemId===card.dataset.itemId));
+    if(!cards.length)return;
+
+    const mapShell=$('.map-shell');
+    const mapRect=mapShell?.getBoundingClientRect();
+    const mapIsTopOverlay=mapRect && mapRect.left<=1 && mapRect.right>=window.innerWidth-1 && mapRect.bottom < window.innerHeight*0.65;
+    const targetY=mapIsTopOverlay
+      ? mapRect.bottom + (window.innerHeight-mapRect.bottom)*0.42
+      : window.innerHeight*0.5;
+
+    let best=null;
+    let bestDist=Infinity;
+    cards.forEach(card=>{
+      const r=card.getBoundingClientRect();
+      if(r.bottom<0||r.top>window.innerHeight)return;
+      const center=(r.top+r.bottom)/2;
+      const dist=Math.abs(center-targetY);
+      if(dist<bestDist){bestDist=dist;best=card;}
+    });
+    if(best)focusMapFromScroll(best.dataset.itemId);
+  }
+
+  function scheduleMapFocusFromScroll(){
+    if(scrollFocusRaf)return;
+    scrollFocusRaf=requestAnimationFrame(updateMapFocusFromScroll);
+  }
+
+  function armScrollMapTracking(){
+    if(currentView!=='detail'||activeTab!=='schedule')return;
+    scrollMapTrackingArmed=true;
+  }
+
   function selectItem(id){
     selectedItemId=id||'';
+    scrollFocusedItemId=selectedItemId;
     $$('.item-card').forEach(c=>c.classList.toggle('selected',c.dataset.itemId===selectedItemId));
     applyMarkerStyles();
     const idx=markers.findIndex(m=>m.itemId===id); if(idx>=0&&map){ const m=markers[idx]; map.panTo(m.marker.position); const z=map.getZoom()||12; map.setZoom(Math.min(Math.max(z,13),14)); }
@@ -1006,7 +1062,7 @@
     const ds=tripDates(); const sel=$('#mapDayFilter');
     sel.innerHTML='<option value="all">전체 여행 경로</option>'+ds.map(d=>`<option value="${d}">DAY ${dayNo(d)} · ${escapeHtml(fmtDate(d))}</option>`).join('');
     if(mapDayFilter!=='all'&&!ds.includes(mapDayFilter)) mapDayFilter='all';
-    sel.value=mapDayFilter; sel.onchange=()=>{mapDayFilter=sel.value;renderMapMarkers()};
+    sel.value=mapDayFilter; sel.onchange=()=>{mapDayFilter=sel.value;scrollFocusedItemId='';scrollMapTrackingArmed=false;renderMapMarkers()};
   }
 
   function markerOverlapOffsets(items){
@@ -1279,11 +1335,21 @@
   function closeOpenModalElement(el){if(!el)return;if(el.id==='galleryModal'&&galleryObjectUrl){URL.revokeObjectURL(galleryObjectUrl);galleryObjectUrl='';$('#galleryImage').removeAttribute('src');}el.classList.remove('open');}
   $$('.modal-backdrop').forEach(bg=>bg.addEventListener('mousedown',e=>{if(e.target===bg)closeOpenModalElement(bg)}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.modal-backdrop.open').forEach(closeOpenModalElement)});
+  window.addEventListener('wheel',()=>{armScrollMapTracking();scheduleMapFocusFromScroll()},{passive:true});
+  window.addEventListener('touchmove',()=>{armScrollMapTracking();scheduleMapFocusFromScroll()},{passive:true});
+  window.addEventListener('scroll',scheduleMapFocusFromScroll,{passive:true});
+  window.addEventListener('resize',scheduleMapFocusFromScroll,{passive:true});
+  window.addEventListener('keydown',e=>{
+    if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key)){
+      armScrollMapTracking();
+      scheduleMapFocusFromScroll();
+    }
+  });
 
   window.initGoogleMaps=async function(){
     try{
       const {Map}=await google.maps.importLibrary('maps');
-      map=new Map($('#map'),{center:{lat:36.2,lng:138.2},zoom:5,mapId:CONFIG.GOOGLE_MAP_ID,streetViewControl:false,mapTypeControl:false,fullscreenControl:false}); $('#mapPlaceholder').classList.add('hidden');
+      map=new Map($('#map'),{center:{lat:36.2,lng:138.2},zoom:5,mapId:CONFIG.GOOGLE_MAP_ID,gestureHandling:'greedy',streetViewControl:false,mapTypeControl:false,fullscreenControl:false}); $('#mapPlaceholder').classList.add('hidden');
       const {Place}=await google.maps.importLibrary('places');
       PlaceSearchClass=Place;
       $('#placeSearchHelp').textContent='장소명을 입력하고 검색하세요. 최대 20개 결과를 스크롤해서 확인할 수 있으며, 선택하면 지도 위치가 자동 저장됩니다.';
