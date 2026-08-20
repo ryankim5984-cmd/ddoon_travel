@@ -964,9 +964,9 @@
     selectedItemId=id;
     $$('.item-card').forEach(c=>c.classList.toggle('selected',c.dataset.itemId===selectedItemId));
     applyMarkerStyles();
-    // 사용자가 일정 목록을 읽기 시작하면 해당 장소를 Zoom 13으로 따라갑니다.
+    // 사용자가 일정 목록을 읽기 시작하면 해당 장소를 Zoom 15로 따라갑니다.
     map.panTo(m.marker.position);
-    map.setZoom(13);
+    map.setZoom(15);
   }
 
   function updateMapFocusFromScroll(){
